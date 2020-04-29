@@ -13,8 +13,8 @@ struct Polymorphic(Interface) {
         _vtable = vtable!T;
     }
 
-    int transform(int i) const {
-        return _vtable.transform(_model, i);
+    auto opDispatch(string identifier, A...)(A args) inout {
+        mixin(`return _vtable.`, identifier, `(_model, args);`);
     }
 }
 

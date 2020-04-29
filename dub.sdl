@@ -1,0 +1,22 @@
+name "dyno"
+description "Runtime polymorphism"
+authors "Atila Neves"
+copyright "Copyright © 2020, atila"
+license "boost"
+
+targetPath "bin"
+
+
+configuration "default" {
+
+}
+
+
+configuration "unittest" {
+    targetType "executable"
+    mainSourceFile "tests/main.d"
+    sourcePaths "tests"
+    importPaths "tests"
+
+    dependency "unit-threaded" version="*"
+}

@@ -4,7 +4,7 @@ module foo;
 struct Polymorphic(Interface) {
 
     private void* _model;
-    private VirtualTable _vtable;
+    private const VirtualTable _vtable;
 
     this(T)(T model) {
         auto thisModel = new T;
@@ -13,14 +13,14 @@ struct Polymorphic(Interface) {
         _vtable = vtable!T;
     }
 
-    int transform(int i) {
+    int transform(int i) const {
         return _vtable.transform(_model, i);
     }
 }
 
 
 struct VirtualTable {
-    int function(void* self, int i) transform;
+    int function(const void* self, int i) transform;
 }
 
 

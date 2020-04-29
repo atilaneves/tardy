@@ -4,13 +4,13 @@ module foo;
 struct Polymorphic(Interface) {
 
     private void* _model;
-    private const VirtualTable _vtable;
+    private const VirtualTable!Interface _vtable;
 
-    this(T)(T model) {
-        auto thisModel = new T;
+    this(Model)(Model model) {
+        auto thisModel = new Model;
         *thisModel = model;
         _model = thisModel;
-        _vtable = vtable!T;
+        _vtable = vtable!(Interface, Model);
     }
 
     auto opDispatch(string identifier, A...)(A args) inout {
@@ -19,13 +19,13 @@ struct Polymorphic(Interface) {
 }
 
 
-struct VirtualTable {
+struct VirtualTable(T) {
     int function(const void* self, int i) transform;
 }
 
 
-VirtualTable vtable(T)() {
-    return VirtualTable(
-        (self, i) => (cast(T*) self).transform(i),
+auto vtable(Interface, Instance)() {
+    return VirtualTable!Interface(
+        (self, i) => (cast(Instance*) self).transform(i),
     );
 }

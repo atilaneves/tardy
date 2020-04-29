@@ -3,18 +3,18 @@ module foo;
 
 struct Polymorphic(Interface) {
 
-    void* model;
-    VirtualTable vtable;
+    private void* _model;
+    private VirtualTable _vtable;
 
     this(T)(T model) {
         auto thisModel = new T;
         *thisModel = model;
-        this.model = thisModel;
-        this.vtable = .vtable!T;
+        _model = thisModel;
+        _vtable = vtable!T;
     }
 
     int transform(int i) {
-        return vtable.transform(model, i);
+        return _vtable.transform(_model, i);
     }
 }
 

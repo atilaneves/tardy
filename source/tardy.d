@@ -1,4 +1,4 @@
-module foo;
+module tardy;
 
 
 struct Polymorphic(Interface) {

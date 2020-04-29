@@ -1,10 +1,10 @@
-module all;
+module ut.polymorphic;
 
 
-import unit_threaded;
-import foo;
+import ut;
 
 
+@("Polymorphic")
 unittest {
     static interface ITransformer {
         int transform(int) const;

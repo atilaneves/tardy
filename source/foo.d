@@ -37,7 +37,28 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
 
 
 auto vtable(Interface, Instance)() {
-    return VirtualTable!Interface(
-        (self, i) => (cast(Instance*) self).transform(i),
-    );
+
+    import std.conv: text;
+    import std.string: join;
+    import std.traits: Parameters;
+    import std.algorithm: map;
+    import std.range: iota;
+
+    VirtualTable!Interface ret;
+
+    static string argName(size_t i) { return `arg` ~ i.text; }
+    static string argsList(string name)() {
+        alias method = mixin(`Interface.`, name);
+        return Parameters!method
+            .length
+            .iota
+            .map!argName
+            .join(`, `);
+    }
+
+    static foreach(name; __traits(allMembers, Interface)) {
+        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (Instance*) self).`, name, `(`, argsList!name, `);`);
+    }
+
+    return ret;
 }

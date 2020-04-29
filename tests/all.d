@@ -6,9 +6,6 @@ import foo;
 
 
 unittest {
-
-    import modules.types: Negative;
-
     static interface ITransformer {
         int transform(int) const;
     }
@@ -37,8 +34,20 @@ unittest {
     xform(thrice, 2).should == 6;
     xform(thrice, 3).should == 9;
 
+    // library type
+    import modules.types: Negative;
     auto negative = Transformer(Negative());
     xform(negative, 1).should == -1;
     xform(negative, 2).should == -2;
     xform(negative, 3).should == -3;
+
+    static struct Multiplier {
+        int i;
+        int transform(int j) { return i * j; }
+    }
+
+    xform(Transformer(Multiplier(2)), 3).should == 6;
+    xform(Transformer(Multiplier(2)), 4).should == 8;
+    xform(Transformer(Multiplier(3)), 3).should == 9;
+    xform(Transformer(Multiplier(3)), 4).should == 12;
 }

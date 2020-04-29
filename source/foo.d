@@ -7,9 +7,9 @@ struct Polymorphic(Interface) {
     VirtualTable vtable;
 
     this(T)(T model) {
-        // auto thisModel = new T;
-        // *thisModel = model;
-        // this.model = thisModel;
+        auto thisModel = new T;
+        *thisModel = model;
+        this.model = thisModel;
         this.vtable = .vtable!T;
     }
 

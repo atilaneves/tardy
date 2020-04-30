@@ -97,7 +97,6 @@ auto vtable(Interface, Instance, Modules...)() {
     // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
     static foreach(name; __traits(allMembers, Interface)) {{
         static foreach(module_; Modules) {
-            pragma(msg, "module: ", __traits(identifier, module_));
             mixin(`import `, fullyQualifiedName!module_, `;`);
         }
         mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (Instance*) self).`, name, `(`, argsList!name, `);`);

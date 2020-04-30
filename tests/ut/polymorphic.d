@@ -68,7 +68,7 @@ unittest {
 }
 
 
-@("Polymorphic.int")
+@("Polymorphic.int.symbol")
 unittest {
     static import modules.ufcs.transform;
     auto three = Transformer.construct!(modules.ufcs.transform)(3);
@@ -83,4 +83,36 @@ unittest {
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;
     xform(double_, 4).should == 7;
+}
+
+
+@("Polymorphic.array")
+unittest {
+    static import modules.ufcs.stringify;
+    import modules.types: Negative, Point, String;
+    import std.algorithm.iteration: map;
+
+    static interface IPrintable {
+        string stringify() const;
+    }
+
+    alias Printable = Polymorphic!IPrintable;
+
+    auto printables = [
+        Printable.construct!(modules.ufcs.stringify)(42),
+        Printable.construct!(modules.ufcs.stringify)(3.3),
+        // FIXME: can't create `string` with `new`
+        // Printable.construct!(modules.ufcs.stringify)("foobar"),
+        Printable.construct!(modules.ufcs.stringify)(String("quux")),
+        Printable.construct!(modules.ufcs.stringify)(Negative()),
+        Printable.construct!(modules.ufcs.stringify)(Point(2, 3)),
+    ];
+
+    printables.map!(a => a.stringify).should == [
+        "42",
+        "3.3",
+        "quux",
+        "Negative",
+        "Point(2, 3)",
+    ];
 }

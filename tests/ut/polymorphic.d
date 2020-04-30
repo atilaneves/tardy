@@ -70,7 +70,7 @@ unittest {
 
 @("Polymorphic.int")
 unittest {
-    import modules.ufcs;
+    static import modules.ufcs;
     auto three = Transformer.construct!(modules.ufcs)(3);
     xform(three, 2).should == 6;
 }
@@ -78,7 +78,7 @@ unittest {
 
 @("Polymorphic.double")
 unittest {
-    import modules.ufcs;
+    static import modules.ufcs;
     auto double_ = Transformer.construct!(modules.ufcs)(3.3);
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;

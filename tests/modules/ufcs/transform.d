@@ -1,4 +1,4 @@
-module modules.ufcs;
+module modules.ufcs.transform;
 
 
 int transform(int* i, int j) {

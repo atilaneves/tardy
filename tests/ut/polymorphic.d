@@ -75,6 +75,12 @@ unittest {
     xform(three, 2).should == 6;
 }
 
+@("Polymorphic.int.string")
+unittest {
+    auto three = Transformer.construct!"modules.ufcs.transform"(3);
+    xform(three, 2).should == 6;
+}
+
 
 @("Polymorphic.double")
 unittest {

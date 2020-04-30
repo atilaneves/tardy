@@ -94,11 +94,20 @@ auto vtable(Interface, Instance, Modules...)() {
             .join(`, `);
     }
 
+    template moduleName(alias module_) {
+        static if(is(typeof(module_) == string))
+            enum moduleName = module_;
+        else
+            enum moduleName = fullyQualifiedName!(module_);
+    }
+
     // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
     static foreach(name; __traits(allMembers, Interface)) {{
+        // import any modules where we have to look for UFCS implementations
         static foreach(module_; Modules) {
-            mixin(`import `, fullyQualifiedName!module_, `;`);
+            mixin(`import `, moduleName!module_, `;`);
         }
+
         mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (Instance*) self).`, name, `(`, argsList!name, `);`);
     }}
 

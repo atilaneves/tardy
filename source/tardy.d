@@ -53,6 +53,9 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
 
     private enum member(string name) = __traits(getMember, Interface, name);
 
+    // Here we declare one function pointer per declaration in Interface.
+    // Each function pointer has the same return type and one extra parameter
+    // in the first position which is the model or context.
     static foreach(name; __traits(allMembers, Interface)) {
         // FIXME: decide when to use void* vs const void*
         mixin(`ReturnType!(Interface.`, name, `) function(const void*, Parameters!(Interface.`, name, `)) `, name, `;`);

@@ -4,17 +4,19 @@ module ut.polymorphic;
 import ut;
 
 
-@("Polymorphic")
+private interface ITransformer {
+    int transform(int) const;
+}
+
+private alias Transformer = Polymorphic!ITransformer;
+
+private int xform(in Transformer t, int i) {
+    return t.transform(i);
+}
+
+
+@("Polymorphic.struct.stateless.Twice")
 unittest {
-    static interface ITransformer {
-        int transform(int) const;
-    }
-
-    alias Transformer = Polymorphic!ITransformer;
-
-    static int xform(in Transformer t, int i) {
-        return t.transform(i);
-    }
 
     static struct Twice {
         int transform(int i) const { return i * 2; }
@@ -24,6 +26,11 @@ unittest {
     xform(twice, 1).should == 2;
     xform(twice, 2).should == 4;
     xform(twice, 3).should == 6;
+}
+
+
+@("Polymorphic.struct.stateless.Thrice")
+unittest {
 
     static struct Thrice {
         int transform(int i) const { return i * 3; }
@@ -33,13 +40,21 @@ unittest {
     xform(thrice, 1).should == 3;
     xform(thrice, 2).should == 6;
     xform(thrice, 3).should == 9;
+}
 
-    // library type
+
+@("Polymorphic.struct.stateless.lib")
+unittest {
     import modules.types: Negative;
     const negative = Transformer(Negative());
     xform(negative, 1).should == -1;
     xform(negative, 2).should == -2;
     xform(negative, 3).should == -3;
+}
+
+
+@("Polymorphic.struct.stateful.Multiplier")
+unittest {
 
     static struct Multiplier {
         int i;

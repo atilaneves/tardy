@@ -10,25 +10,27 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
     private void* _model;
     private immutable VirtualTable!Interface _vtable;
 
-    this(Model)(Model model) {
-        auto thisModel = new Model;
-        *thisModel = model;
-        _model = thisModel;
-        _vtable = vtable!(Interface, Model);
+    this(void* model, immutable VirtualTable!Interface vtable) {
+        _model = model;
+        _vtable = vtable;
     }
 
-    static construct(Modules...)(int model) {
+    this(Model)(Model model) {
+        this(constructModel(model), vtable!(Interface, Model));
+    }
 
-        Polymorphic!Interface self;
+    /**
+       This factory function makes it possible to pass in a module
+       to look for UFCS functions for the model
+     */
+    static construct(alias module_, Model)(Model model) {
+        return Polymorphic!Interface(constructModel(model), vtable!(Interface, Model, module_));
+    }
 
-        alias Model = typeof(model);
-
-        auto thisModel = new Model;
-        *thisModel = model;
-        self._model = thisModel;
-        () @trusted { (cast() self._vtable) = vtable!(Interface, Model, Modules); }();
-
-        return self;
+    private static void* constructModel(Model)(Model model) {
+        auto newModel = new Model;
+        *newModel = model;
+        return newModel;
     }
 
     auto opDispatch(string identifier, A...)(A args) inout {

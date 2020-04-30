@@ -69,7 +69,7 @@ unittest {
 
 
 
-@("Polymorphic.basic")
+@("Polymorphic.int")
 unittest {
     import modules.ufcs;
     auto three = Transformer.construct!(modules.ufcs)(3);

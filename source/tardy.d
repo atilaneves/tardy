@@ -19,12 +19,19 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         this(constructModel(model), vtable!(Interface, Model));
     }
 
-    /**
-       This factory function makes it possible to pass in a module
-       to look for UFCS functions for the model
-     */
     static construct(alias module_, Model)(Model model) {
         return Polymorphic!Interface(constructModel(model), vtable!(Interface, Model, module_));
+    }
+
+    /**
+       This factory function makes it possible to pass in modules
+       to look for UFCS functions for the model
+     */
+    template create(Modules...) {
+        static create(Model)(Model model) {
+            return Polymorphic!Interface(constructModel(model),
+                                         vtable!(Interface, Model, Modules));
+        }
     }
 
     private static void* constructModel(Model)(Model model) {
@@ -101,12 +108,21 @@ auto vtable(Interface, Instance, Modules...)() {
             enum moduleName = fullyQualifiedName!(module_);
     }
 
+    template moduleSymbol(alias module_) {
+        static if(is(typeof(module_) == string)) {
+            mixin(`import the_module = `, module_, `;`);
+            alias moduleSymbol = the_module;
+        }
+        else
+            alias moduleSymbol = module_;
+    }
+
     enum importMixin(alias module_, string name) = `import ` ~ moduleName!module_ ~ `:` ~ name ~ `;`;
 
     static foreach(name; __traits(allMembers, Interface)) {{
         // import any modules where we have to look for UFCS implementations
         static foreach(module_; Modules) {
-            static if(__traits(compiles, importMixin!(module_, name)))
+            static if(__traits(hasMember, moduleSymbol!module_, name))
                 mixin(importMixin!(module_, name));
         }
 

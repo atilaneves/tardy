@@ -70,14 +70,29 @@ unittest {
 
 @("Polymorphic.int")
 unittest {
-    auto three = Transformer.construct!"modules.ufcs.transform"(3);
+    auto three = Transformer.create!"modules.ufcs.transform"(3);
     xform(three, 2).should == 6;
+    xform(three, 3).should == 9;
+}
+
+@("Polymorphic.scalar.modules")
+unittest {
+    auto four = Transformer.create!(
+             "modules.ufcs.transform",
+             // pass in a module that has nothing to with anything to test
+             // that it still works if there's no function with that
+             // name in it
+             "modules.types",
+        )
+        (4);
+    xform(four, 2).should == 8;
+    xform(four, 3).should == 12;
 }
 
 
 @("Polymorphic.double")
 unittest {
-    auto double_ = Transformer.construct!"modules.ufcs.transform"(3.3);
+    auto double_ = Transformer.create!"modules.ufcs.transform"(3.3);
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;
     xform(double_, 4).should == 7;
@@ -97,13 +112,13 @@ unittest {
     alias Printable = Polymorphic!IPrintable;
 
     auto printables = [
-        Printable.construct!(modules.ufcs.stringify)(42),
-        Printable.construct!(modules.ufcs.stringify)(3.3),
+        Printable.create!(modules.ufcs.stringify)(42),
+        Printable.create!(modules.ufcs.stringify)(3.3),
         // FIXME: can't create `string` with `new`
-        // Printable.construct!(modules.ufcs.stringify)("foobar"),
-        Printable.construct!(modules.ufcs.stringify)(String("quux")),
-        Printable.construct!(modules.ufcs.stringify)(Negative()),
-        Printable.construct!(modules.ufcs.stringify)(Point(2, 3)),
+        // Printable.create!(modules.ufcs.stringify)("foobar"),
+        Printable.create!(modules.ufcs.stringify)(String("quux")),
+        Printable.create!(modules.ufcs.stringify)(Negative()),
+        Printable.create!(modules.ufcs.stringify)(Point(2, 3)),
     ];
 
     printables.map!(a => a.stringify).should == [

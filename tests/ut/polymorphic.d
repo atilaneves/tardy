@@ -66,3 +66,12 @@ unittest {
     xform(Transformer(Multiplier(3)), 3).should == 9;
     xform(Transformer(Multiplier(3)), 4).should == 12;
 }
+
+
+
+@("Polymorphic.basic")
+unittest {
+    import modules.ufcs;
+    auto three = Transformer.construct!(modules.ufcs)(3);
+    xform(three, 2).should == 6;
+}

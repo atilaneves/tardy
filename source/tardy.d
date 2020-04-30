@@ -8,13 +8,13 @@ module tardy;
 struct Polymorphic(Interface) if(is(Interface == interface)){
 
     private void* _model;
-    private VirtualTable!Interface _vtable;
+    private immutable VirtualTable!Interface _vtable;
 
     this(Model)(Model model) {
         auto thisModel = new Model;
         *thisModel = model;
         _model = thisModel;
-        _vtable = vtable!(Interface, Model, Modules);
+        _vtable = vtable!(Interface, Model);
     }
 
     static construct(Modules...)(int model) {
@@ -26,7 +26,7 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         auto thisModel = new Model;
         *thisModel = model;
         self._model = thisModel;
-        self._vtable = vtable!(Interface, Model, Modules);
+        () @trusted { (cast() self._vtable) = vtable!(Interface, Model, Modules); }();
 
         return self;
     }

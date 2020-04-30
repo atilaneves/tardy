@@ -68,10 +68,19 @@ unittest {
 }
 
 
-
 @("Polymorphic.int")
 unittest {
     import modules.ufcs;
     auto three = Transformer.construct!(modules.ufcs)(3);
     xform(three, 2).should == 6;
+}
+
+
+@("Polymorphic.double")
+unittest {
+    import modules.ufcs;
+    auto double_ = Transformer.construct!(modules.ufcs)(3.3);
+    xform(double_, 2).should == 5;
+    xform(double_, 3).should == 6;
+    xform(double_, 4).should == 7;
 }

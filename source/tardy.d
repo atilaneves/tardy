@@ -11,7 +11,7 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
     private immutable VirtualTable!Interface _vtable;
 
     this(Instance)(Instance instance) {
-        this(constructInstance(instance), vtable!(Interface, Instance));
+        this(constructInstance!Instance(instance), vtable!(Interface, Instance));
     }
 
     this(ref scope const(Polymorphic) other) {
@@ -25,7 +25,7 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
      */
     template create(Modules...) {
         static create(Instance)(Instance instance) {
-            return Polymorphic!Interface(constructInstance(instance),
+            return Polymorphic!Interface(constructInstance!Instance(instance),
                                          vtable!(Interface, Instance, Modules));
         }
     }
@@ -141,22 +141,22 @@ auto vtable(Interface, Instance, Modules...)() {
 
     ret.copyConstructor = (otherPtr) {
         auto otherInstancePtr = cast(const(Instance)*) otherPtr;
-        return constructInstance(*otherInstancePtr);
+        return constructInstance!Instance(*otherInstancePtr);
     };
 
     return ret;
 }
 
 
-private void* constructInstance(Instance)(Instance instance) {
+private void* constructInstance(Instance, A...)(auto ref A args) {
     import std.traits: Unqual;
     import std.conv: emplace;
 
     static if(is(Instance == class)) {
-        static if(__traits(compiles, emplace(cast(Unqual!Instance) null, instance))) {
+        static if(__traits(compiles, emplace(cast(Unqual!Instance) null, args))) {
             auto buffer = new void[__traits(classInstanceSize, Instance)];
             auto newInstance = cast(Unqual!Instance) buffer.ptr;
-            emplace(newInstance, instance);
+            emplace(newInstance, args);
             return buffer.ptr;
         } else {
             auto newInstance = new Unqual!Instance;
@@ -164,8 +164,12 @@ private void* constructInstance(Instance)(Instance instance) {
         }
 
     } else {
-        auto newInstance = new Unqual!Instance;
-        *newInstance = instance;
-        return newInstance;
+        static if(__traits(compiles, Unqual!Instance(args)))
+            return new Unqual!Instance(args);
+        else {
+            auto instance = new Unqual!Instance;
+            *instance = args[0];
+            return instance;
+        }
     }
 }

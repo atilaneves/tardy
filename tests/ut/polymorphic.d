@@ -82,6 +82,23 @@ unittest {
 }
 
 
+@("Polymorphic.class.stateful.Multiplier")
+unittest {
+
+    static class Multiplier {
+        int i;
+        this(int i) { this.i = i; }
+        this(const Multiplier other) { this.i = other.i; }
+        int transform(int j) const { return i * j; }
+    }
+
+    xform(Transformer(new Multiplier(2)), 3).should == 6;
+    xform(Transformer(new Multiplier(2)), 4).should == 8;
+    xform(Transformer(new Multiplier(3)), 3).should == 9;
+    xform(Transformer(new Multiplier(3)), 4).should == 12;
+}
+
+
 @("Polymorphic.int")
 unittest {
     auto three = Transformer.create!"modules.ufcs.transform"(3);

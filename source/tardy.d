@@ -10,17 +10,8 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
     private void* _instance;
     private immutable VirtualTable!Interface _vtable;
 
-    this(void* instance, immutable VirtualTable!Interface vtable) {
-        _instance = instance;
-        _vtable = vtable;
-    }
-
     this(Instance)(Instance instance) {
         this(constructInstance(instance), vtable!(Interface, Instance));
-    }
-
-    static construct(alias module_, Instance)(Instance instance) {
-        return Polymorphic!Interface(constructInstance(instance), vtable!(Interface, Instance, module_));
     }
 
     this(ref scope const(Polymorphic) other) {
@@ -37,6 +28,11 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
             return Polymorphic!Interface(constructInstance(instance),
                                          vtable!(Interface, Instance, Modules));
         }
+    }
+
+    private this(void* instance, immutable VirtualTable!Interface vtable) {
+        _instance = instance;
+        _vtable = vtable;
     }
 
     auto opDispatch(string identifier, A...)(A args) inout {
@@ -154,12 +150,21 @@ auto vtable(Interface, Instance, Modules...)() {
 
 private void* constructInstance(Instance)(Instance instance) {
     import std.traits: Unqual;
-
-    auto newInstance = new Unqual!Instance;
+    import std.conv: emplace;
 
     static if(is(Instance == class)) {
-        return cast(void*) newInstance;
+        static if(__traits(compiles, emplace(cast(Unqual!Instance) null, instance))) {
+            auto buffer = new void[__traits(classInstanceSize, Instance)];
+            auto newInstance = cast(Unqual!Instance) buffer.ptr;
+            emplace(newInstance, instance);
+            return buffer.ptr;
+        } else {
+            auto newInstance = new Unqual!Instance;
+            return cast(void*) newInstance;
+        }
+
     } else {
+        auto newInstance = new Unqual!Instance;
         *newInstance = instance;
         return newInstance;
     }

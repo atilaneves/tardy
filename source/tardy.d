@@ -3,45 +3,51 @@ module tardy;
 
 /**
    A wrapper that acts like a subclass of Interface, dispatching
-   at runtime to different model instances.
+   at runtime to different instance instances.
  */
 struct Polymorphic(Interface) if(is(Interface == interface)){
 
-    private void* _model;
+    private void* _instance;
     private immutable VirtualTable!Interface _vtable;
 
-    this(void* model, immutable VirtualTable!Interface vtable) {
-        _model = model;
+    this(void* instance, immutable VirtualTable!Interface vtable) {
+        _instance = instance;
         _vtable = vtable;
     }
 
-    this(Model)(Model model) {
-        this(constructModel(model), vtable!(Interface, Model));
+    this(Instance)(Instance instance) {
+        this(constructInstance(instance), vtable!(Interface, Instance));
     }
 
-    static construct(alias module_, Model)(Model model) {
-        return Polymorphic!Interface(constructModel(model), vtable!(Interface, Model, module_));
+    static construct(alias module_, Instance)(Instance instance) {
+        return Polymorphic!Interface(constructInstance(instance), vtable!(Interface, Instance, module_));
+    }
+
+    this(ref scope const(Polymorphic) other) {
+        _vtable = other._vtable;
+        _instance = other._vtable.copyConstructor(other._instance);
     }
 
     /**
        This factory function makes it possible to pass in modules
-       to look for UFCS functions for the model
+       to look for UFCS functions for the instance
      */
     template create(Modules...) {
-        static create(Model)(Model model) {
-            return Polymorphic!Interface(constructModel(model),
-                                         vtable!(Interface, Model, Modules));
+        static create(Instance)(Instance instance) {
+            return Polymorphic!Interface(constructInstance(instance),
+                                         vtable!(Interface, Instance, Modules));
         }
     }
 
-    private static void* constructModel(Model)(Model model) {
-        auto newModel = new Model;
-        *newModel = model;
-        return newModel;
+    private static void* constructInstance(Instance)(Instance instance) {
+        auto newInstance = new Instance;
+        *newInstance = instance;
+        return newInstance;
     }
 
     auto opDispatch(string identifier, A...)(A args) inout {
-        mixin(`return _vtable.`, identifier, `(_model, args);`);
+        mixin(`assert(_vtable.`, identifier, ` !is null, "null vtable entry for '`, identifier, `'");`);
+        mixin(`return _vtable.`, identifier, `(_instance, args);`);
     }
 }
 
@@ -64,11 +70,16 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
 
     // Here we declare one function pointer per declaration in Interface.
     // Each function pointer has the same return type and one extra parameter
-    // in the first position which is the model or context.
+    // in the first position which is the instance or context.
     static foreach(name; __traits(allMembers, Interface)) {
         // FIXME: decide when to use void* vs const void*
         mixin(`ReturnType!(Interface.`, name, `) function(const void*, Parameters!(Interface.`, name, `)) `, name, `;`);
     }
+
+    // The copy constructor has to be in the virtual table since only
+    // Polymorphic's constructor knows what the static type is.
+
+    void* function(const(void)* otherInstancePtr) copyConstructor;
 }
 
 
@@ -132,6 +143,13 @@ auto vtable(Interface, Instance, Modules...)() {
         // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
         mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (Instance*) self).`, name, `(`, argsList!name, `);`);
     }}
+
+    ret.copyConstructor = (otherInstancePtr) {
+        auto otherInstance = cast(const(Instance)*) otherInstancePtr;
+        auto newInstance = new Instance;
+        *newInstance = *otherInstance;
+        return newInstance;
+    };
 
     return ret;
 }

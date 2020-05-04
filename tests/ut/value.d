@@ -7,7 +7,6 @@ import tardy;
 
 
 // verify that copying obeys value semantics
-@ShouldFail
 @("copy")
 unittest {
     import std.algorithm.iteration: map;

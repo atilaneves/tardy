@@ -68,6 +68,20 @@ unittest {
 }
 
 
+@("Polymorphic.class.stateless.Thrice")
+unittest {
+
+    static class Thrice {
+        int transform(int i) const { return i * 3; }
+    }
+
+    const thrice = Transformer(new Thrice());
+    xform(thrice, 1).should == 3;
+    xform(thrice, 2).should == 6;
+    xform(thrice, 3).should == 9;
+}
+
+
 @("Polymorphic.int")
 unittest {
     auto three = Transformer.create!"modules.ufcs.transform"(3);

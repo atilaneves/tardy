@@ -39,12 +39,6 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         }
     }
 
-    private static void* constructInstance(Instance)(Instance instance) {
-        auto newInstance = new Instance;
-        *newInstance = instance;
-        return newInstance;
-    }
-
     auto opDispatch(string identifier, A...)(A args) inout {
         mixin(`assert(_vtable.`, identifier, ` !is null, "null vtable entry for '`, identifier, `'");`);
         mixin(`return _vtable.`, identifier, `(_instance, args);`);
@@ -130,6 +124,11 @@ auto vtable(Interface, Instance, Modules...)() {
 
     enum importMixin(alias module_, string name) = `import ` ~ moduleName!module_ ~ `:` ~ name ~ `;`;
 
+    static if(is(Instance == class))
+        alias InstancePtr = Instance;
+    else
+        alias InstancePtr = Instance*;
+
     static foreach(name; __traits(allMembers, Interface)) {{
 
          // FIXME: check that the Instance implements Interface
@@ -141,15 +140,27 @@ auto vtable(Interface, Instance, Modules...)() {
         }
 
         // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
-        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (Instance*) self).`, name, `(`, argsList!name, `);`);
+        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (InstancePtr) self).`, name, `(`, argsList!name, `);`);
     }}
 
-    ret.copyConstructor = (otherInstancePtr) {
-        auto otherInstance = cast(const(Instance)*) otherInstancePtr;
-        auto newInstance = new Instance;
-        *newInstance = *otherInstance;
-        return newInstance;
+    ret.copyConstructor = (otherPtr) {
+        auto otherInstancePtr = cast(const(Instance)*) otherPtr;
+        return constructInstance(*otherInstancePtr);
     };
 
     return ret;
+}
+
+
+private void* constructInstance(Instance)(Instance instance) {
+    import std.traits: Unqual;
+
+    auto newInstance = new Unqual!Instance;
+
+    static if(is(Instance == class)) {
+        return cast(void*) newInstance;
+    } else {
+        *newInstance = instance;
+        return newInstance;
+    }
 }

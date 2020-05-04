@@ -170,6 +170,10 @@ private void* constructInstance(Instance, A...)(auto ref A args) {
             auto instance = new Unqual!Instance;
             *instance = args[0];
             return instance;
+        } else static if(__traits(compiles, emplace(new Unqual!Instance, args))) {
+            auto instance = new Unqual!Instance;
+            emplace(instance, args);
+            return instance;
         } else {
             auto instance = new Unqual!Instance;
             return instance;

@@ -120,6 +120,9 @@ auto vtable(Interface, Instance, Modules...)() {
     enum importMixin(alias module_, string name) = `import ` ~ moduleName!module_ ~ `:` ~ name ~ `;`;
 
     static foreach(name; __traits(allMembers, Interface)) {{
+
+         // FIXME: check that the Instance implements Interface
+
         // import any modules where we have to look for UFCS implementations
         static foreach(module_; Modules) {
             static if(__traits(hasMember, moduleSymbol!module_, name))

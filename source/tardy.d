@@ -10,7 +10,7 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
     private void* _instance;
     private immutable VirtualTable!Interface _vtable;
 
-    this(Instance)(Instance instance) {
+    this(Instance)(auto ref Instance instance) {
         this(constructInstance!Instance(instance), vtable!(Interface, Instance));
     }
 
@@ -149,7 +149,7 @@ auto vtable(Interface, Instance, Modules...)() {
 
 
 private void* constructInstance(Instance, A...)(auto ref A args) {
-    import std.traits: Unqual;
+    import std.traits: Unqual, isCopyable;
     import std.conv: emplace;
 
     static if(is(Instance == class)) {
@@ -164,11 +164,14 @@ private void* constructInstance(Instance, A...)(auto ref A args) {
         }
 
     } else {
-        static if(__traits(compiles, Unqual!Instance(args)))
+        static if(__traits(compiles, new Unqual!Instance(args)))
             return new Unqual!Instance(args);
-        else {
+        else static if(isCopyable!Instance) {
             auto instance = new Unqual!Instance;
             *instance = args[0];
+            return instance;
+        } else {
+            auto instance = new Unqual!Instance;
             return instance;
         }
     }

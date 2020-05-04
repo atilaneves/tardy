@@ -51,3 +51,26 @@ unittest {
 
     printables.map!(a => a.stringify).should == ["Foo(0)", "Foo(1)", "Bar(2)", "Baz(3)"];
 }
+
+
+@("uncopiable")
+unittest {
+    static interface IPrintable {
+        void inc();
+        string stringify() const;
+    }
+
+    alias Printable = Polymorphic!IPrintable;
+
+    static struct Foo {
+        @disable this(this);
+        int i;
+        void inc() { ++i; }
+        string stringify() const { import std.conv: text; return text("Foo(", i, ")"); }
+    }
+
+    auto p = Printable(Foo(42));
+    p.stringify.should == "Foo(0)";  // T.init
+    p.inc;
+    p.stringify.should == "Foo(1)";
+}

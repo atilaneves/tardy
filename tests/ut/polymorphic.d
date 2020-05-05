@@ -15,7 +15,7 @@ private int xform(in Transformer t, int i) {
 }
 
 
-@("Polymorphic.struct.stateless.Twice")
+@("struct.stateless.Twice")
 unittest {
 
     static struct Twice {
@@ -29,7 +29,7 @@ unittest {
 }
 
 
-@("Polymorphic.struct.stateless.Thrice")
+@("struct.stateless.Thrice")
 unittest {
 
     static struct Thrice {
@@ -43,7 +43,7 @@ unittest {
 }
 
 
-@("Polymorphic.struct.stateless.lib")
+@("struct.stateless.lib")
 unittest {
     import modules.types: Negative;
     const negative = Transformer(Negative());
@@ -53,7 +53,7 @@ unittest {
 }
 
 
-@("Polymorphic.struct.stateful.Multiplier")
+@("struct.stateful.Multiplier")
 unittest {
 
     static struct Multiplier {
@@ -68,7 +68,7 @@ unittest {
 }
 
 
-@("Polymorphic.class.stateless.Thrice")
+@("class.stateless.Thrice")
 unittest {
 
     static class Thrice {
@@ -82,7 +82,7 @@ unittest {
 }
 
 
-@("Polymorphic.class.stateful.Multiplier")
+@("class.stateful.Multiplier")
 unittest {
 
     static class Multiplier {
@@ -99,14 +99,14 @@ unittest {
 }
 
 
-@("Polymorphic.int")
+@("int")
 unittest {
     auto three = Transformer.create!"modules.ufcs.transform"(3);
     xform(three, 2).should == 6;
     xform(three, 3).should == 9;
 }
 
-@("Polymorphic.scalar.modules")
+@("scalar.modules")
 unittest {
     auto four = Transformer.create!(
              "modules.ufcs.transform",
@@ -121,7 +121,7 @@ unittest {
 }
 
 
-@("Polymorphic.double")
+@("double")
 unittest {
     auto double_ = Transformer.create!"modules.ufcs.transform"(3.3);
     xform(double_, 2).should == 5;
@@ -130,7 +130,7 @@ unittest {
 }
 
 
-@("Polymorphic.array")
+@("array")
 unittest {
     static import modules.ufcs.stringify;
     import modules.types: Negative, Point, String;

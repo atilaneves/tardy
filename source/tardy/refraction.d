@@ -1,4 +1,4 @@
-module refraction;
+module tardy.refraction;
 
 
 auto refractMixin(alias F)(in string newName) {

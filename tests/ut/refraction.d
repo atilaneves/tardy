@@ -2,7 +2,7 @@ module ut.refraction;
 
 
 import ut;
-import refraction: refractMixin;
+import tardy.refraction: refractMixin;
 import std.meta: AliasSeq;
 static import std.traits;  // because refract uses it
 

@@ -19,4 +19,6 @@ configuration "unittest" {
     importPaths "tests"
 
     dependency "unit-threaded" version="*"
+
+    versions "unitUnthreaded"
 }

@@ -5,12 +5,12 @@ import ut;
 
 
 private interface ITransformer {
-    int transform(int) const;
+    int transform(int) @safe const;
 }
 
 private alias Transformer = Polymorphic!ITransformer;
 
-private int xform(in Transformer t, int i) {
+private int xform(in Transformer t, int i) @safe {
     return t.transform(i);
 }
 
@@ -19,7 +19,7 @@ private int xform(in Transformer t, int i) {
 unittest {
 
     static struct Twice {
-        int transform(int i) const { return i * 2; }
+        int transform(int i) @safe const { return i * 2; }
     }
 
     const twice = Transformer(Twice());
@@ -33,7 +33,7 @@ unittest {
 unittest {
 
     static struct Thrice {
-        int transform(int i) const { return i * 3; }
+        int transform(int i) @safe const { return i * 3; }
     }
 
     const thrice = Transformer(Thrice());
@@ -58,7 +58,7 @@ unittest {
 
     static struct Multiplier {
         int i;
-        int transform(int j) const { return i * j; }
+        int transform(int j) @safe const { return i * j; }
     }
 
     xform(Transformer(Multiplier(2)), 3).should == 6;
@@ -72,7 +72,7 @@ unittest {
 unittest {
 
     static class Thrice {
-        int transform(int i) const { return i * 3; }
+        int transform(int i) @safe const { return i * 3; }
     }
 
     const thrice = Transformer(new Thrice());
@@ -87,9 +87,9 @@ unittest {
 
     static class Multiplier {
         int i;
-        this(int i) { this.i = i; }
-        this(const Multiplier other) { this.i = other.i; }
-        int transform(int j) const { return i * j; }
+        this(int i) @safe { this.i = i; }
+        this(const Multiplier other) @safe { this.i = other.i; }
+        int transform(int j) @safe const { return i * j; }
     }
 
     xform(Transformer(new Multiplier(2)), 3).should == 6;
@@ -138,6 +138,38 @@ unittest {
 
     static interface IPrintable {
         string stringify() const;
+    }
+
+    alias Printable = Polymorphic!IPrintable;
+
+    auto printables = [
+        Printable.create!(modules.ufcs.stringify)(42),
+        Printable.create!(modules.ufcs.stringify)(3.3),
+        // FIXME: can't create `string` with `new`
+        // Printable.create!(modules.ufcs.stringify)("foobar"),
+        Printable.create!(modules.ufcs.stringify)(String("quux")),
+        Printable.create!(modules.ufcs.stringify)(Negative()),
+        Printable.create!(modules.ufcs.stringify)(Point(2, 3)),
+    ];
+
+    printables.map!(a => a.stringify).should == [
+        "42",
+        "3.3",
+        "quux",
+        "Negative",
+        "Point(2, 3)",
+    ];
+}
+
+
+@("array.system")
+@system unittest {
+    static import modules.ufcs.stringify;
+    import modules.types: Negative, Point, String;
+    import std.algorithm.iteration: map;
+
+    static interface IPrintable {
+        string stringify() @system const;
     }
 
     alias Printable = Polymorphic!IPrintable;

@@ -5,6 +5,9 @@ import modules.types: Negative, Point, String;
 import std.conv: text;
 
 
+@safe:
+
+
 string stringify(int* i) {
     return text(*i);
 }

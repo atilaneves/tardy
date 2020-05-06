@@ -155,7 +155,8 @@ auto vtable(Interface, Instance, Modules...)() {
         }
 
         // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
-        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (InstancePtr) self).`, name, `(`, argsList!name, `);`);
+        // the cast is @trusted because here we know the static type
+        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!name, `);`);
     }}
 
     ret.copyConstructor = (otherPtr) {

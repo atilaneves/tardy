@@ -88,7 +88,7 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
 
     // The copy constructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
-    void* function(const(void)* otherInstancePtr) copyConstructor;
+    void* function(const(void)* otherInstancePtr) @safe copyConstructor;
 }
 
 
@@ -160,7 +160,8 @@ auto vtable(Interface, Instance, Modules...)() {
     }}
 
     ret.copyConstructor = (otherPtr) {
-        auto otherInstancePtr = cast(const(Instance)*) otherPtr;
+        // Like above, casting is @trusted because we know the static type
+        auto otherInstancePtr = () @trusted { return cast(const(Instance)*) otherPtr; }();
         return constructInstance!Instance(*otherInstancePtr);
     };
 
@@ -175,12 +176,12 @@ private void* constructInstance(Instance, A...)(auto ref A args) {
     static if(is(Instance == class)) {
         static if(__traits(compiles, emplace(cast(Unqual!Instance) null, args))) {
             auto buffer = new void[__traits(classInstanceSize, Instance)];
-            auto newInstance = cast(Unqual!Instance) buffer.ptr;
+            auto newInstance = () @trusted { return cast(Unqual!Instance) buffer.ptr; }();
             emplace(newInstance, args);
-            return buffer.ptr;
+            return &buffer[0];
         } else {
             auto newInstance = new Unqual!Instance;
-            return cast(void*) newInstance;
+            return () @trusted { return cast(void*) newInstance; }();
         }
 
     } else {

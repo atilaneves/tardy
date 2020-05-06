@@ -5,12 +5,12 @@ import ut;
 
 
 private interface ITransformer {
-    int transform(int) @safe const;
+    int transform(int) @safe pure const;
 }
 
 private alias Transformer = Polymorphic!ITransformer;
 
-private int xform(in Transformer t, int i) @safe {
+private int xform(in Transformer t, int i) @safe pure {
     return t.transform(i);
 }
 

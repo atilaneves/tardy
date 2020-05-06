@@ -1,13 +1,10 @@
 module modules.ufcs.transform;
 
 
-@safe:
-
-
-int transform(int* i, int j) {
+int transform(int* i, int j) @safe pure {
     return *i * j;
 }
 
-int transform(double* d, int i) {
+int transform(double* d, int i) @safe pure {
     return cast(int) *d + i;
 }

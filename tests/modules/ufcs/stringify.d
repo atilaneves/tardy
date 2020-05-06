@@ -5,26 +5,26 @@ import modules.types: Negative, Point, String;
 import std.conv: text;
 
 
-string stringify(int* i) @safe pure {
+string stringify(const(int)* i) @safe pure {
     return text(*i);
 }
 
-string stringify(double* d) @safe /* not pure */ {
+string stringify(const(double)* d) @safe /* not pure */ {
     return text(*d);
 }
 
-string stringify(string* s) @safe pure {
+string stringify(const(string)* s) @safe pure {
     return *s;
 }
 
-string stringify(Negative* n) @safe pure {
+string stringify(const(Negative)* n) @safe pure {
     return "Negative";
 }
 
-string stringify(Point* p) @safe pure {
+string stringify(const(Point)* p) @safe pure {
     return text("Point(", p.x, ", ", p.y, ")");
 }
 
-string stringify(String* s) @safe pure {
+string stringify(const(String)* s) @safe pure {
     return s.value;
 }

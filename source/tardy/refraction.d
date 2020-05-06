@@ -17,22 +17,36 @@ string methodRecipe(alias F)(in string symbolName = "")
     const symbol = symbolName == "" ? fullyQualifiedName!F : symbolName;
     enum attrs = [ __traits(getFunctionAttributes, F) ];
 
-    static if(isMemberFunction!F)
+    static if(isMemberFunction!F) {
         enum isConst = attrs.canFind("const");
-    else static if(is(typeof(F) parameters == __parameters))
+        enum isImmutable = attrs.canFind("immutable");
+        enum isShared = attrs.canFind("shared");
+    } else static if(is(typeof(F) parameters == __parameters)) {
         enum isConst = is(parameters[0] == const);
-    else
+        enum isImmutable = is(parameters[0] == immutable);
+        enum isShared = is(parameters[0] == shared);
+    } else
         static assert(false);
 
     const returnType = `std.traits.ReturnType!(` ~ symbol ~ `)`;
-    enum selfType = isConst ? `const(void)*` : `void*`;
+    enum selfType = isConst
+        ? `const(void)*`
+        : isImmutable
+            ? `immutable(void)*`
+            : isShared
+                ? `shared(void)*`
+                : `void*`;
 
     static bool isMemberFunctionOnly(in string attr) {
         return cast(bool) attr.among("const", "immutable", "shared", "inout", "return", "scope");
     }
 
-    const selfAttrs = attrs.filter!(a => isMemberFunctionOnly(a) && a != "const").join(" ");
-    const methodAttrs = attrs.filter!(a => !isMemberFunctionOnly(a)).join(" ");
+    const selfAttrs = attrs
+        .filter!(a => isMemberFunctionOnly(a) && !a.among("const", "immutable", "shared"))
+        .join(" ");
+    const methodAttrs = attrs
+        .filter!(a => !isMemberFunctionOnly(a))
+        .join(" ");
 
     return text(returnType, ` function(`, selfAttrs, " ", selfType,`, std.traits.Parameters!(`, symbol, `)) `, methodAttrs);
 }

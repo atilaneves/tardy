@@ -101,7 +101,7 @@ auto vtable(Interface, Instance, Modules...)() {
 
     import std.conv: text;
     import std.string: join;
-    import std.traits: Parameters, fullyQualifiedName;
+    import std.traits: Parameters, fullyQualifiedName, PointerTarget, CopyTypeQualifiers;
     import std.algorithm: map;
     import std.range: iota;
 
@@ -137,14 +137,20 @@ auto vtable(Interface, Instance, Modules...)() {
 
     enum importMixin(alias module_, string name) = `import ` ~ moduleName!module_ ~ `:` ~ name ~ `;`;
 
-    static if(is(Instance == class))
-        alias InstancePtr = Instance;
-    else
-        alias InstancePtr = Instance*;
+    template Ptr(T) {
+        static if(is(T == class))
+            alias Ptr = T;
+        else
+            alias Ptr = T*;
+    }
 
     static foreach(name; __traits(allMembers, Interface)) {{
 
-         // FIXME: check that the Instance implements Interface
+        // copy type qualifiers from self to what we cast void* to
+        alias P0 = PointerTarget!(Parameters!(mixin(`ret.`, name))[0]);
+        alias InstancePtr = Ptr!(CopyTypeQualifiers!(P0, Instance));
+
+        // FIXME: check that the Instance implements Interface
 
         // import any modules where we have to look for UFCS implementations
         static foreach(module_; Modules) {

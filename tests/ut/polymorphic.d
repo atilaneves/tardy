@@ -214,3 +214,32 @@ private int xform(in Transformer t, int i) @safe pure {
         "Point(2, 3)",
     ];
 }
+
+
+@("self.immutable")
+@safe pure unittest {
+    static interface IInterface {
+        int fun() @safe pure immutable;
+    }
+    alias Interface = Polymorphic!IInterface;
+
+    static struct Mutable {
+        int fun() @safe pure { return 0; }
+    }
+
+    static struct Const {
+        int fun() @safe pure const { return 1; }
+    }
+
+    static struct Immutable {
+        int fun() @safe pure immutable { return 2; }
+    }
+
+    static assert(!__traits(compiles, Interface(Mutable())));
+
+    const c = Interface(Const());
+    static assert(!__traits(compiles, c.fun));
+
+    immutable i = () pure { return Interface(Immutable()); }();
+    i.fun.should == 2;
+}

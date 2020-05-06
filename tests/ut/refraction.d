@@ -34,12 +34,12 @@ alias functions = AliasSeq!(
     twice,
 );
 
-pragma(msg, "");
+// pragma(msg, "");
 static foreach(F; functions) {
-    pragma(msg, "F: ", std.traits.fullyQualifiedName!F, "\t\t", methodRecipe!F);
+    // pragma(msg, "F: ", std.traits.fullyQualifiedName!F, "\t\t", methodRecipe!F);
     mixin(methodRecipe!F, " ", methodId!F, ";");
 }
-pragma(msg, "");
+// pragma(msg, "");
 
 
 @("return")

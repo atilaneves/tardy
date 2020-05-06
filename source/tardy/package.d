@@ -35,9 +35,29 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         _vtable = vtable;
     }
 
-    auto opDispatch(string identifier, A...)(A args) inout {
-        mixin(`assert(_vtable.`, identifier, ` !is null, "null vtable entry for '`, identifier, `'");`);
-        mixin(`return _vtable.`, identifier, `(_instance, args);`);
+    auto opDispatch(string identifier, this This, A...)(A args) {
+        enum vtableEntry = `_vtable.` ~ identifier;
+        // each vtable entry is a function pointer, here we get the type of
+        // the function this pointer points to
+        alias F = typeof(mixin(`*`, vtableEntry, `.init`));
+
+        static if(is(F parameters == __parameters)) {
+
+            enum notMutable = is(This == const) || is(This == immutable);
+
+            static if(notMutable && is(parameters[0] == void*)) {
+                // we use a pragma(msg) here instead of in the static assert
+                // because when opDispatch doesn't compile the compiler
+                // doesn't really tell the user why, and the message in the
+                // static assert is never seen
+                pragma(msg, "ERROR: Cannot call mutable method " ~ identifier ~ " on " ~ This.stringof);
+                static assert(false);
+            } else {
+                mixin(`assert(`, vtableEntry, ` !is null, "null vtable entry for '`, identifier, `'");`);
+                mixin(`return `, vtableEntry, `(_instance, args);`);
+            }
+        } else
+            static assert(false);
     }
 }
 
@@ -51,24 +71,23 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
 struct VirtualTable(Interface) if(is(Interface == interface)) {
     // FIXME:
     // * argument defaults e.g. int i = 42
-    // * `this` modifiers (const, scope, ...)
+    // * `this` modifiers (scope, what else?)
     // * @safe pure
     // * overloads
-    import std.traits: ReturnType, Parameters;
+    import tardy.refraction: methodRecipe;
+    static import std.traits;  // used by methodRecipe
 
-    private enum member(string name) = __traits(getMember, Interface, name);
+    private enum fullName(string name) = `Interface.` ~ name;
 
     // Here we declare one function pointer per declaration in Interface.
     // Each function pointer has the same return type and one extra parameter
     // in the first position which is the instance or context.
     static foreach(name; __traits(allMembers, Interface)) {
-        // FIXME: decide when to use void* vs const void*
-        mixin(`ReturnType!(Interface.`, name, `) function(const void*, Parameters!(Interface.`, name, `)) `, name, `;`);
+        mixin(methodRecipe!(mixin(fullName!name))(fullName!name), ` `, name, `;`);
     }
 
     // The copy constructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
-
     void* function(const(void)* otherInstancePtr) copyConstructor;
 }
 

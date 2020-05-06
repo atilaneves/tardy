@@ -23,6 +23,7 @@ struct Struct {
     Point point() const;
     void inc(int amount);
     void safeInc(int amount) @safe;
+    void scopeInc(int amount) @safe scope;
 }
 
 alias functions = AliasSeq!(
@@ -30,16 +31,18 @@ alias functions = AliasSeq!(
     Struct.point,
     Struct.inc,
     Struct.safeInc,
+    Struct.scopeInc,
     simple,
     safe_,
     pure_,
     twice,
 );
 
-// pragma(msg, "");
+//pragma(msg, "");
 static foreach(F; functions) {
     // pragma(msg, "F: ", std.traits.fullyQualifiedName!F, "\t\t", methodRecipe!F);
     mixin(methodRecipe!F, " ", methodId!F, ";");
+    // pragma(msg, "");
 }
 // pragma(msg, "");
 
@@ -100,6 +103,13 @@ private void shouldMatchSelf(alias F, T)() {
     static assert(is(T == void function(void*, int) @safe));
 }
 
+
+// FIXME: dmd bug
+@("type.struct.scopeInc")
+@safe pure unittest {
+    alias T = typeof(mixin(methodId!(Struct.scopeInc)));
+    //static assert(is(T == void function(scope void*, int) @safe));
+}
 
 
 private string newId(alias F)() {

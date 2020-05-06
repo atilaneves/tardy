@@ -28,12 +28,13 @@ string methodRecipe(alias F)(in string symbolName = "")
     enum selfType = isConst ? `const(void)*` : `void*`;
 
     static bool isMemberFunctionOnly(in string attr) {
-        return cast(bool) attr.among("const", "immutable", "shared", "inout", "return");
+        return cast(bool) attr.among("const", "immutable", "shared", "inout", "return", "scope");
     }
 
+    const selfAttrs = attrs.filter!(a => isMemberFunctionOnly(a) && a != "const").join(" ");
     const methodAttrs = attrs.filter!(a => !isMemberFunctionOnly(a)).join(" ");
 
-    return text(returnType, ` function(`, selfType,`, std.traits.Parameters!(`, symbol, `)) `, methodAttrs);
+    return text(returnType, ` function(`, selfAttrs, " ", selfType,`, std.traits.Parameters!(`, symbol, `)) `, methodAttrs);
 }
 
 

@@ -22,12 +22,14 @@ struct Struct {
     int const_() const;
     Point point() const;
     void inc(int amount);
+    void safeInc(int amount) @safe;
 }
 
 alias functions = AliasSeq!(
     Struct.const_,
     Struct.point,
     Struct.inc,
+    Struct.safeInc,
     simple,
     safe_,
     pure_,
@@ -85,10 +87,20 @@ private void shouldMatchSelf(alias F, T)() {
                        ": expected ", T.stringof, " but got ", params[0].stringof));
 }
 
+
 @("type.struct.inc")
 @safe pure unittest {
-    static assert(is(typeof(mixin(methodId!(Struct.inc))) == void function(void*, int)));
+    static assert(is(typeof(mixin(methodId!(Struct.inc))) == void function(void*, int) @system));
 }
+
+
+@("type.struct.safeInc")
+@safe pure unittest {
+    alias T = typeof(mixin(methodId!(Struct.safeInc)));
+    static assert(is(T == void function(void*, int) @safe));
+}
+
+
 
 private string newId(alias F)() {
     return "as_" ~ __traits(identifier, F);

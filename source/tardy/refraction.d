@@ -12,21 +12,30 @@ string methodRecipe(alias F)(in string symbolName = "")
     do
 {
     import std.conv: text;
-    import std.traits: fullyQualifiedName, functionAttributes, FA = FunctionAttribute;
+    import std.traits: fullyQualifiedName;
+    import std.algorithm: canFind, among, filter;
+    import std.array: join;
 
     const symbol = symbolName == "" ? fullyQualifiedName!F : symbolName;
-    enum attrs = functionAttributes!F;
+    enum attrs = [ __traits(getFunctionAttributes, F) ];
 
     static if(isMemberFunction!F)
-        enum isConst = attrs & FA.const_;
+        enum isConst = attrs.canFind("const");
     else static if(is(typeof(F) parameters == __parameters))
         enum isConst = is(parameters[0] == const);
     else
         static assert(false);
 
+    const returnType = `std.traits.ReturnType!(` ~ symbol ~ `)`;
     enum selfType = isConst ? `const(void)*` : `void*`;
 
-    return text(`std.traits.ReturnType!(`, symbol, `) function(`, selfType,`, std.traits.Parameters!(`, symbol, `))`);
+    static bool isMemberFunctionOnly(in string attr) {
+        return cast(bool) attr.among("const", "immutable", "shared", "inout", "return");
+    }
+
+    const methodAttrs = attrs.filter!(a => !isMemberFunctionOnly(a)).join(" ");
+
+    return text(returnType, ` function(`, selfType,`, std.traits.Parameters!(`, symbol, `)) `, methodAttrs);
 }
 
 

@@ -19,7 +19,7 @@ private int xform(in Transformer t, int i) @safe {
 @safe unittest {
 
     static struct Twice {
-        int transform(int i) @safe const { return i * 2; }
+        int transform(int i) @safe pure const { return i * 2; }
     }
 
     const twice = Transformer(Twice());
@@ -33,7 +33,7 @@ private int xform(in Transformer t, int i) @safe {
 @safe unittest {
 
     static struct Thrice {
-        int transform(int i) @safe const { return i * 3; }
+        int transform(int i) @safe pure const { return i * 3; }
     }
 
     const thrice = Transformer(Thrice());
@@ -58,7 +58,7 @@ private int xform(in Transformer t, int i) @safe {
 
     static struct Multiplier {
         int i;
-        int transform(int j) @safe const { return i * j; }
+        int transform(int j) @safe pure const { return i * j; }
     }
 
     xform(Transformer(Multiplier(2)), 3).should == 6;
@@ -72,7 +72,7 @@ private int xform(in Transformer t, int i) @safe {
 @safe unittest {
 
     static class Thrice {
-        int transform(int i) @safe const { return i * 3; }
+        int transform(int i) @safe pure const { return i * 3; }
     }
 
     const thrice = Transformer(new Thrice());
@@ -87,9 +87,9 @@ private int xform(in Transformer t, int i) @safe {
 
     static class Multiplier {
         int i;
-        this(int i) @safe { this.i = i; }
-        this(const Multiplier other) @safe { this.i = other.i; }
-        int transform(int j) @safe const { return i * j; }
+        this(int i) @safe pure { this.i = i; }
+        this(const Multiplier other) @safe pure { this.i = other.i; }
+        int transform(int j) @safe pure const { return i * j; }
     }
 
     xform(Transformer(new Multiplier(2)), 3).should == 6;

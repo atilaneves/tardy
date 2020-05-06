@@ -13,10 +13,12 @@ static import std.traits;  // because refract uses it
 
 int simple(double d, string s);
 int safe_(ubyte b, float f, double d) @safe;
+double pure_(double) @safe pure;
 
 alias functions = AliasSeq!(
     simple,
     safe_,
+    pure_,
 );
 
 static foreach(F; functions) {

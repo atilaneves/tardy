@@ -71,8 +71,6 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
 struct VirtualTable(Interface) if(is(Interface == interface)) {
     // FIXME:
     // * argument defaults e.g. int i = 42
-    // * `this` modifiers (scope, what else?)
-    // * @safe pure
     // * overloads
     import tardy.refraction: methodRecipe;
     static import std.traits;  // used by methodRecipe

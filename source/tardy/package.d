@@ -35,9 +35,29 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         _vtable = vtable;
     }
 
-    auto opDispatch(string identifier, A...)(A args) inout {
-        mixin(`assert(_vtable.`, identifier, ` !is null, "null vtable entry for '`, identifier, `'");`);
-        mixin(`return _vtable.`, identifier, `(_instance, args);`);
+    auto opDispatch(string identifier, this This, A...)(A args) {
+        enum vtableEntry = `_vtable.` ~ identifier;
+        // each vtable entry is a function pointer, here we get the type of
+        // the function this pointer points to
+        alias F = typeof(mixin(`*`, vtableEntry, `.init`));
+
+        static if(is(F parameters == __parameters)) {
+
+            enum notMutable = is(This == const) || is(This == immutable);
+
+            static if(notMutable && is(parameters[0] == void*)) {
+                // we use a pragma(msg) here instead of in the static assert
+                // because when opDispatch doesn't compile the compiler
+                // doesn't really tell the user why, and the message in the
+                // static assert is never seen
+                pragma(msg, "ERROR: Cannot call mutable method " ~ identifier ~ " on " ~ This.stringof);
+                static assert(false);
+            } else {
+                mixin(`assert(`, vtableEntry, ` !is null, "null vtable entry for '`, identifier, `'");`);
+                mixin(`return `, vtableEntry, `(_instance, args);`);
+            }
+        } else
+            static assert(false);
     }
 }
 
@@ -51,25 +71,22 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
 struct VirtualTable(Interface) if(is(Interface == interface)) {
     // FIXME:
     // * argument defaults e.g. int i = 42
-    // * `this` modifiers (const, scope, ...)
-    // * @safe pure
     // * overloads
-    import std.traits: ReturnType, Parameters;
+    import tardy.refraction: methodRecipe;
+    static import std.traits;  // used by methodRecipe
 
-    private enum member(string name) = __traits(getMember, Interface, name);
+    private enum fullName(string name) = `Interface.` ~ name;
 
     // Here we declare one function pointer per declaration in Interface.
     // Each function pointer has the same return type and one extra parameter
     // in the first position which is the instance or context.
     static foreach(name; __traits(allMembers, Interface)) {
-        // FIXME: decide when to use void* vs const void*
-        mixin(`ReturnType!(Interface.`, name, `) function(const void*, Parameters!(Interface.`, name, `)) `, name, `;`);
+        mixin(methodRecipe!(mixin(fullName!name))(fullName!name), ` `, name, `;`);
     }
 
     // The copy constructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
-
-    void* function(const(void)* otherInstancePtr) copyConstructor;
+    void* function(scope const(void)* otherInstancePtr) @safe copyConstructor;
 }
 
 
@@ -136,11 +153,13 @@ auto vtable(Interface, Instance, Modules...)() {
         }
 
         // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
-        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (cast (InstancePtr) self).`, name, `(`, argsList!name, `);`);
+        // the cast is @trusted because here we know the static type
+        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!name, `);`);
     }}
 
     ret.copyConstructor = (otherPtr) {
-        auto otherInstancePtr = cast(const(Instance)*) otherPtr;
+        // Like above, casting is @trusted because we know the static type
+        auto otherInstancePtr = () @trusted { return cast(const(Instance)*) otherPtr; }();
         return constructInstance!Instance(*otherInstancePtr);
     };
 
@@ -155,12 +174,12 @@ private void* constructInstance(Instance, A...)(auto ref A args) {
     static if(is(Instance == class)) {
         static if(__traits(compiles, emplace(cast(Unqual!Instance) null, args))) {
             auto buffer = new void[__traits(classInstanceSize, Instance)];
-            auto newInstance = cast(Unqual!Instance) buffer.ptr;
+            auto newInstance = () @trusted { return cast(Unqual!Instance) buffer.ptr; }();
             emplace(newInstance, args);
-            return buffer.ptr;
+            return &buffer[0];
         } else {
             auto newInstance = new Unqual!Instance;
-            return cast(void*) newInstance;
+            return () @trusted { return cast(void*) newInstance; }();
         }
 
     } else {

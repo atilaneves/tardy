@@ -8,12 +8,12 @@ import tardy;
 
 // verify that copying obeys value semantics
 @("copy")
-unittest {
+@safe unittest {
     import std.algorithm.iteration: map;
 
     static interface IPrintable {
-        void inc();
-        string stringify() const;
+        void inc() @safe;
+        string stringify() @safe const;
     }
 
     alias Printable = Polymorphic!IPrintable;
@@ -21,18 +21,18 @@ unittest {
     import std.conv: text;
     static struct Foo {
         int i;
-        void inc() { ++i; }
-        string stringify() const { return text("Foo(", i, ")"); }
+        void inc() @safe { ++i; }
+        string stringify() @safe const { return text("Foo(", i, ")"); }
     }
     static struct Bar {
         int i;
-        void inc() { ++i; }
-        string stringify() const { return text("Bar(", i, ")"); }
+        void inc() @safe { ++i; }
+        string stringify() @safe const { return text("Bar(", i, ")"); }
     }
     static struct Baz {
         int i;
-        void inc() { ++i; }
-        string stringify() const { return text("Baz(", i, ")"); }
+        void inc() @safe { ++i; }
+        string stringify() @safe const { return text("Baz(", i, ")"); }
     }
 
     auto printables = [
@@ -42,22 +42,29 @@ unittest {
         Printable(Baz(3)),
     ];
 
-    printables.map!(a => a.stringify).should == ["Foo(0)", "Foo(1)", "Bar(2)", "Baz(3)"];
+    string call(Printable p) { return p.stringify; }
+    auto strings = printables.map!call;
+    () @trusted {
+        strings.should == ["Foo(0)", "Foo(1)", "Bar(2)", "Baz(3)"];
+    }();
 
     auto bar = printables[2];
     bar.stringify.should == "Bar(2)";
     bar.inc;
     bar.stringify.should == "Bar(3)";
 
-    printables.map!(a => a.stringify).should == ["Foo(0)", "Foo(1)", "Bar(2)", "Baz(3)"];
+    strings = printables.map!call;
+    () @trusted {
+        strings.should == ["Foo(0)", "Foo(1)", "Bar(2)", "Baz(3)"];
+    }();
 }
 
 
 @("uncopiable")
-unittest {
+@safe unittest {
     static interface IPrintable {
-        void inc();
-        string stringify() const;
+        void inc() @safe;
+        string stringify() @safe const;
     }
 
     alias Printable = Polymorphic!IPrintable;
@@ -65,8 +72,8 @@ unittest {
     static struct Foo {
         @disable this(this);
         int i;
-        void inc() { ++i; }
-        string stringify() const { import std.conv: text; return text("Foo(", i, ")"); }
+        void inc() @safe { ++i; }
+        string stringify() @safe const { import std.conv: text; return text("Foo(", i, ")"); }
     }
 
     auto p = Printable(Foo(42));

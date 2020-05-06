@@ -5,21 +5,21 @@ import ut;
 
 
 private interface ITransformer {
-    int transform(int) const;
+    int transform(int) @safe pure const;
 }
 
 private alias Transformer = Polymorphic!ITransformer;
 
-private int xform(in Transformer t, int i) {
+private int xform(in Transformer t, int i) @safe pure {
     return t.transform(i);
 }
 
 
 @("struct.stateless.Twice")
-unittest {
+@safe unittest {
 
     static struct Twice {
-        int transform(int i) const { return i * 2; }
+        int transform(int i) @safe pure const { return i * 2; }
     }
 
     const twice = Transformer(Twice());
@@ -30,10 +30,10 @@ unittest {
 
 
 @("struct.stateless.Thrice")
-unittest {
+@safe unittest {
 
     static struct Thrice {
-        int transform(int i) const { return i * 3; }
+        int transform(int i) @safe pure const { return i * 3; }
     }
 
     const thrice = Transformer(Thrice());
@@ -44,7 +44,7 @@ unittest {
 
 
 @("struct.stateless.lib")
-unittest {
+@safe unittest {
     import modules.types: Negative;
     const negative = Transformer(Negative());
     xform(negative, 1).should == -1;
@@ -54,11 +54,11 @@ unittest {
 
 
 @("struct.stateful.Multiplier")
-unittest {
+@safe unittest {
 
     static struct Multiplier {
         int i;
-        int transform(int j) const { return i * j; }
+        int transform(int j) @safe pure const { return i * j; }
     }
 
     xform(Transformer(Multiplier(2)), 3).should == 6;
@@ -69,10 +69,10 @@ unittest {
 
 
 @("class.stateless.Thrice")
-unittest {
+@safe unittest {
 
     static class Thrice {
-        int transform(int i) const { return i * 3; }
+        int transform(int i) @safe pure const { return i * 3; }
     }
 
     const thrice = Transformer(new Thrice());
@@ -83,13 +83,13 @@ unittest {
 
 
 @("class.stateful.Multiplier")
-unittest {
+@safe unittest {
 
     static class Multiplier {
         int i;
-        this(int i) { this.i = i; }
-        this(const Multiplier other) { this.i = other.i; }
-        int transform(int j) const { return i * j; }
+        this(int i) @safe pure { this.i = i; }
+        this(const Multiplier other) @safe pure { this.i = other.i; }
+        int transform(int j) @safe pure const { return i * j; }
     }
 
     xform(Transformer(new Multiplier(2)), 3).should == 6;
@@ -100,14 +100,14 @@ unittest {
 
 
 @("int")
-unittest {
+@safe unittest {
     auto three = Transformer.create!"modules.ufcs.transform"(3);
     xform(three, 2).should == 6;
     xform(three, 3).should == 9;
 }
 
 @("scalar.modules")
-unittest {
+@safe unittest {
     auto four = Transformer.create!(
              "modules.ufcs.transform",
              // pass in a module that has nothing to with anything to test
@@ -122,7 +122,7 @@ unittest {
 
 
 @("double")
-unittest {
+@safe unittest {
     auto double_ = Transformer.create!"modules.ufcs.transform"(3.3);
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;
@@ -130,14 +130,68 @@ unittest {
 }
 
 
-@("array")
-unittest {
+@("array.pure")
+@safe pure unittest {
+    static import modules.ufcs.stringify;
+    import modules.types: Negative, Point, String;
+    import std.algorithm.iteration: map;
+    import std.array: array;
+
+    static interface IPrintable {
+        string stringify() @safe pure const;
+    }
+
+    alias Printable = Polymorphic!IPrintable;
+
+    auto printable = Printable.create!(modules.ufcs.stringify)(42);
+    printable.stringify.should == "42";
+}
+
+
+
+@("array.safe")
+@safe unittest {
+    static import modules.ufcs.stringify;
+    import modules.types: Negative, Point, String;
+    import std.algorithm.iteration: map;
+    import std.array: array;
+
+    static interface IPrintable {
+        string stringify() @safe const;
+    }
+
+    alias Printable = Polymorphic!IPrintable;
+
+    auto printables = [
+        Printable.create!(modules.ufcs.stringify)(42),
+        Printable.create!(modules.ufcs.stringify)(3.3),
+        // FIXME: can't create `string` with `new`
+        // Printable.create!(modules.ufcs.stringify)("foobar"),
+        Printable.create!(modules.ufcs.stringify)(String("quux")),
+        Printable.create!(modules.ufcs.stringify)(Negative()),
+        Printable.create!(modules.ufcs.stringify)(Point(2, 3)),
+    ];
+
+    // the conversion to an array is to maintain @safeness
+    // (don't ask)
+    printables.map!(a => a.stringify).array.should == [
+        "42",
+        "3.3",
+        "quux",
+        "Negative",
+        "Point(2, 3)",
+    ];
+}
+
+
+@("array.system")
+@system unittest {
     static import modules.ufcs.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
 
     static interface IPrintable {
-        string stringify() const;
+        string stringify() @system const;
     }
 
     alias Printable = Polymorphic!IPrintable;

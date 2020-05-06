@@ -2,7 +2,7 @@ module modules.types;
 
 
 struct Negative {
-    int transform(int i) const {
+    int transform(int i) @safe pure const {
         return -i;
     }
 }

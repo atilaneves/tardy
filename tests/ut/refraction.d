@@ -11,29 +11,33 @@ static import std.traits;  // because refract uses it
 // them need to be at module scope to prevent the compiler from inferring
 // function attributes such as @safe or pure.
 
-int simple(double d, string s);
-int safe_(ubyte b, float f, double d) @safe;
-double pure_(double) @safe pure;
+private int simple(double d, string s);
+private int safe_(ubyte b, float f, double d) @safe;
+private double pure_(double) @safe pure;
+private int twice(const int i);
 
 struct Struct {
     import modules.types: Point;
 
     int const_() const;
     Point point() const;
+    void inc();
 }
 
 alias functions = AliasSeq!(
     Struct.const_,
     Struct.point,
+    Struct.inc,
     simple,
     safe_,
     pure_,
+    twice,
 );
 
 pragma(msg, "");
 static foreach(F; functions) {
-    pragma(msg, "F: ", __traits(identifier, F), "\t", methodRecipe(std.traits.fullyQualifiedName!F));
-    mixin(methodRecipe(std.traits.fullyQualifiedName!F), " ", methodId!F, ";");
+    pragma(msg, "F: ", std.traits.fullyQualifiedName!F, "\t\t", methodRecipe!F);
+    mixin(methodRecipe!F, " ", methodId!F, ";");
 }
 pragma(msg, "");
 
@@ -55,9 +59,13 @@ private void shouldMatchReturnType(alias F)() {
 }
 
 
-@("self")
+@("self.const")
 @safe pure unittest {
     shouldMatchSelf!(simple, void*);
+    shouldMatchSelf!(Struct.inc, void*);
+
+    shouldMatchSelf!(twice, const(void)*);
+    shouldMatchSelf!(Struct.const_, const(void)*);
 }
 
 

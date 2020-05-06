@@ -7,12 +7,27 @@ auto refractMixin(alias F)(in string newName) {
 }
 
 
-string methodRecipe(string symbol = "")
+string methodRecipe(alias F)()
     in(__ctfe)
     do
 {
     import std.conv: text;
-    import std.traits: fullyQualifiedName;
+    import std.traits: fullyQualifiedName, functionAttributes, FA = FunctionAttribute;
 
-    return text(`std.traits.ReturnType!(`, symbol, `) function(void*)`);
+    enum symbol = fullyQualifiedName!F;
+    enum attrs = functionAttributes!F;
+
+    static if(isMemberFunction!F)
+        enum isConst = attrs & FA.const_;
+    else static if(is(typeof(F) parameters == __parameters))
+        enum isConst = is(parameters[0] == const);
+    else
+        static assert(false);
+
+    enum selfType = isConst ? `const(void)*` : `void*`;
+
+    return text(`std.traits.ReturnType!(`, symbol, `) function(`, selfType,`)`);
 }
+
+
+enum isMemberFunction(alias F) = is(__traits(parent, F) == struct) || is(__traits(parent, F) == class);

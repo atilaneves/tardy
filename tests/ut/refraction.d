@@ -32,8 +32,8 @@ alias functions = AliasSeq!(
 
 pragma(msg, "");
 static foreach(F; functions) {
-    pragma(msg, "F: ", __traits(identifier, F), "\t", methodRecipe!F);
-    mixin(methodRecipe!F, " ", methodId!F, ";");
+    pragma(msg, "F: ", __traits(identifier, F), "\t", methodRecipe(std.traits.fullyQualifiedName!F));
+    mixin(methodRecipe(std.traits.fullyQualifiedName!F), " ", methodId!F, ";");
 }
 pragma(msg, "");
 

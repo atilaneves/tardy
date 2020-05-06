@@ -21,7 +21,7 @@ struct Struct {
 
     int const_() const;
     Point point() const;
-    void inc();
+    void inc(int amount);
 }
 
 alias functions = AliasSeq!(
@@ -59,11 +59,15 @@ private void shouldMatchReturnType(alias F)() {
 }
 
 
-@("self.const")
+@("self.mutable")
 @safe pure unittest {
     shouldMatchSelf!(simple, void*);
     shouldMatchSelf!(Struct.inc, void*);
+}
 
+
+@("self.const")
+@safe pure unittest {
     shouldMatchSelf!(twice, const(void)*);
     shouldMatchSelf!(Struct.const_, const(void)*);
 }
@@ -79,6 +83,11 @@ private void shouldMatchSelf(alias F, T)() {
     static assert(is(params[0] == T),
                   text("Wrong self type for ", __traits(identifier, F),
                        ": expected ", T.stringof, " but got ", params[0].stringof));
+}
+
+@("type.struct.inc")
+@safe pure unittest {
+    static assert(is(typeof(mixin(methodId!(Struct.inc))) == void function(void*, int)));
 }
 
 private string newId(alias F)() {

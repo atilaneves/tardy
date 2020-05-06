@@ -26,7 +26,7 @@ string methodRecipe(alias F)()
 
     enum selfType = isConst ? `const(void)*` : `void*`;
 
-    return text(`std.traits.ReturnType!(`, symbol, `) function(`, selfType,`)`);
+    return text(`std.traits.ReturnType!(`, symbol, `) function(`, selfType,`, std.traits.Parameters!(`, symbol, `))`);
 }
 
 

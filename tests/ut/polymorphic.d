@@ -16,7 +16,7 @@ private int xform(in Transformer t, int i) @safe {
 
 
 @("struct.stateless.Twice")
-unittest {
+@safe unittest {
 
     static struct Twice {
         int transform(int i) @safe const { return i * 2; }
@@ -30,7 +30,7 @@ unittest {
 
 
 @("struct.stateless.Thrice")
-unittest {
+@safe unittest {
 
     static struct Thrice {
         int transform(int i) @safe const { return i * 3; }
@@ -44,7 +44,7 @@ unittest {
 
 
 @("struct.stateless.lib")
-unittest {
+@safe unittest {
     import modules.types: Negative;
     const negative = Transformer(Negative());
     xform(negative, 1).should == -1;
@@ -54,7 +54,7 @@ unittest {
 
 
 @("struct.stateful.Multiplier")
-unittest {
+@safe unittest {
 
     static struct Multiplier {
         int i;
@@ -69,7 +69,7 @@ unittest {
 
 
 @("class.stateless.Thrice")
-unittest {
+@safe unittest {
 
     static class Thrice {
         int transform(int i) @safe const { return i * 3; }
@@ -83,7 +83,7 @@ unittest {
 
 
 @("class.stateful.Multiplier")
-unittest {
+@safe unittest {
 
     static class Multiplier {
         int i;
@@ -100,14 +100,14 @@ unittest {
 
 
 @("int")
-unittest {
+@safe unittest {
     auto three = Transformer.create!"modules.ufcs.transform"(3);
     xform(three, 2).should == 6;
     xform(three, 3).should == 9;
 }
 
 @("scalar.modules")
-unittest {
+@safe unittest {
     auto four = Transformer.create!(
              "modules.ufcs.transform",
              // pass in a module that has nothing to with anything to test
@@ -122,7 +122,7 @@ unittest {
 
 
 @("double")
-unittest {
+@safe unittest {
     auto double_ = Transformer.create!"modules.ufcs.transform"(3.3);
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;
@@ -130,14 +130,15 @@ unittest {
 }
 
 
-@("array")
-unittest {
+@("array.safe")
+@safe unittest {
     static import modules.ufcs.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
+    import std.array: array;
 
     static interface IPrintable {
-        string stringify() const;
+        string stringify() @safe const;
     }
 
     alias Printable = Polymorphic!IPrintable;
@@ -152,7 +153,9 @@ unittest {
         Printable.create!(modules.ufcs.stringify)(Point(2, 3)),
     ];
 
-    printables.map!(a => a.stringify).should == [
+    // the conversion to an array is to maintain @safeness
+    // (don't ask)
+    printables.map!(a => a.stringify).array.should == [
         "42",
         "3.3",
         "quux",

@@ -88,7 +88,7 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
 
     // The copy constructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
-    void* function(const(void)* otherInstancePtr) @safe copyConstructor;
+    void* function(scope const(void)* otherInstancePtr) @safe copyConstructor;
 }
 
 

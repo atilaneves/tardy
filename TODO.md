@@ -1,8 +1,11 @@
 Proper refraction
-  * Overloads
   * Default values for parameters
+  * Overloads
 
-Handle destructors
+ctors/dtors:
+  * Destructors
+  * @disable this();
+  * Construct a const/immutable/shared polymorphic object without casting
 
 Copy-on-write: equivalent of `shared_ptr<const Foo>`.
 

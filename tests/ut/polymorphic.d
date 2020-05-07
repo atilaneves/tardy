@@ -262,3 +262,40 @@ private int xform(in Transformer t, int i) @safe pure {
 
     static assert(is(typeof(Poly.storageClasses) == typeof(Interface.storageClasses)));
 }
+
+
+@ShouldFail
+@("dtor")
+@safe unittest {
+
+    static interface Interface {
+        int value() @safe @nogc pure const;
+    }
+    alias Poly = Polymorphic!Interface;
+
+    static struct Id {
+        static int numIds;
+        int i;
+
+        this(int i) {
+            this.i = i;
+            ++numIds;
+        }
+
+        ~this() { --numIds; }
+
+        int value() @safe @nogc pure const { return i; }
+    }
+
+    Id.numIds.should == 0;
+    {
+        const id0 = Poly(Id(42));
+        Id.numIds.should == 1;
+        id0.value.should == 42;
+
+        const id1 = Poly(Id(33));
+        Id.numIds.should == 2;
+        id1.value.should == 33;
+    }
+    Id.numIds.should == 0;
+}

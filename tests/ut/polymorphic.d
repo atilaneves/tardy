@@ -305,12 +305,12 @@ private int xform(in Transformer t, int i) @safe pure {
 @safe pure unittest {
 
     static interface Interface {
-        string fun(int i, int j =1, int k = 2) @safe pure scope const;
+        string fun(int i, int j = 1, int k = 2) @safe pure scope const;
     }
     alias Poly = Polymorphic!Interface;
 
     static struct Struct {
-        string fun(int i, int j =1, int k = 2) @safe pure scope const {
+        string fun(int i, int j, int k) @safe pure scope const {
             import std.conv: text;
             return text("i: ", i, " j: ", j, " k: ", k);
         }

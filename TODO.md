@@ -1,7 +1,6 @@
 Proper refraction
   * Overloads
   * Default values for parameters
-  * Storage classes
 
 Handle destructors
 

@@ -54,6 +54,13 @@ string vtableEntryRecipe(alias F)(in string symbolName = "")
                 vtableEntryAttrs);
 }
 
+string methodRecipe(alias F)(in string symbolName = "")
+    in(__ctfe)
+     do
+{
+    return "int fun(double, string) @safe pure const";
+}
+
 
 enum isMemberFunction(alias F) =
     is(__traits(parent, F) == struct)

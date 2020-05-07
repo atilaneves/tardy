@@ -35,32 +35,40 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         _vtable = vtable;
     }
 
-    auto opDispatch(string identifier, this This, A...)(A args) {
-        enum vtableEntry = `_vtable.` ~ identifier;
-        // each vtable entry is a function pointer, here we get the type of
-        // the function this pointer points to
-        alias F = typeof(mixin(`*`, vtableEntry, `.init`));
+    // From here we declare one member function per declaration in Interface, with
+    // the same signature
+    import tardy.refraction: methodRecipe;
+    import std.format: format;
+    static import std.traits;
 
-        static if(is(F parameters == __parameters)) {
+    private alias memberFunction(string name) = __traits(getMember, Interface, name);
+    private enum numParams(string name) = std.traits.Parameters!(memberFunction!name).length;
 
-            enum notMutable = is(This == const) || is(This == immutable);
+    static foreach(memberName; __traits(allMembers, Interface)) {
 
-            static if(notMutable && is(parameters[0] == void*)) {
-                // we use a pragma(msg) here instead of in the static assert
-                // because when opDispatch doesn't compile the compiler
-                // doesn't really tell the user why, and the message in the
-                // static assert is never seen
-                pragma(msg, "ERROR: Cannot call mutable method " ~ identifier ~ " on " ~ This.stringof);
-                static assert(false);
-            } else {
-                mixin(`assert(`, vtableEntry, ` !is null, "null vtable entry for '`, identifier, `'");`);
-                mixin(`return `, vtableEntry, `(_instance, args);`);
-            }
-        } else
-            static assert(false);
+        mixin(methodRecipe!(memberFunction!memberName)("Interface." ~ memberName),
+              q{{
+
+                  assert(_vtable.%s !is null);
+                  return _vtable.%s(_instance, %s);
+
+              }}.format(memberName, memberName, argsCall(numParams!memberName))
+        );
+
     }
 }
 
+
+private string argsCall(size_t length)
+    in(__ctfe)
+    do
+{
+    import std.range: iota;
+    import std.algorithm: map;
+    import std.array: join;
+    import std.conv: text;
+    return length.iota.map!(i => text("arg", i)).join(", ");
+}
 
 /**
    A virtual table for Interface.

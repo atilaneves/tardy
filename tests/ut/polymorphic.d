@@ -238,7 +238,7 @@ private int xform(in Transformer t, int i) @safe pure {
     static assert(!__traits(compiles, Interface(Mutable())));
 
     const c = Interface(Const());
-    static assert(!__traits(compiles, c.fun));
+    static assert(!__traits(compiles, c.fun()));
 
     immutable i = () pure { return Interface(Immutable()); }();
     i.fun.should == 2;

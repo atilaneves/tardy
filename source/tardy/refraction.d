@@ -5,7 +5,7 @@ module tardy.refraction;
    Returns a string mixin that is the function pointer type of F,
    with an extra void* (or const(void)*) first parameter.
  */
-string methodRecipe(alias F)(in string symbolName = "")
+string vtableEntryRecipe(alias F)(in string symbolName = "")
     in(__ctfe)
     do
 {
@@ -44,11 +44,14 @@ string methodRecipe(alias F)(in string symbolName = "")
     const selfAttrs = attrs
         .filter!(a => isMemberFunctionOnly(a) && !a.among("const", "immutable", "shared"))
         .join(" ");
-    const methodAttrs = attrs
+    const vtableEntryAttrs = attrs
         .filter!(a => !isMemberFunctionOnly(a))
         .join(" ");
 
-    return text(returnType, ` function(`, selfAttrs, " ", selfType,`, std.traits.Parameters!(`, symbol, `)) `, methodAttrs);
+    return text(returnType,
+                ` function(`, selfAttrs, " ", selfType,
+                `, std.traits.Parameters!(`, symbol, `)) `,
+                vtableEntryAttrs);
 }
 
 

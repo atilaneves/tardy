@@ -1,5 +1,12 @@
 Proper refraction
-@safe pure @nogc?
+  * Overloads
+  * Default values for parameters
+  * Storage classes
+
+Handle destructors
+
+Copy-on-write: equivalent of `shared_ptr<const Foo>`.
+
 Policies:
    Storage of instance (heap, insitu/heap, insitu)
    Storage of vtable (heap, insitu/heap, insitu)

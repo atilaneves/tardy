@@ -243,3 +243,20 @@ private int xform(in Transformer t, int i) @safe pure {
     immutable i = () pure { return Interface(Immutable()); }();
     i.fun.should == 2;
 }
+
+
+@("storageClass")
+@safe pure unittest {
+
+    static interface IInterface {
+        void storageClasses(
+            int normal,
+            return scope int* returnScope,
+            out int out_,
+            ref int ref_,
+            lazy int lazy_,
+        );
+    }
+
+    alias Interface = Polymorphic!IInterface;
+}

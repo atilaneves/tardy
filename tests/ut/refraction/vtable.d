@@ -1,4 +1,4 @@
-module ut.refraction;
+module ut.refraction.vtable;
 
 
 import ut;
@@ -40,8 +40,8 @@ alias functions = AliasSeq!(
 
 //pragma(msg, "");
 static foreach(F; functions) {
-    // pragma(msg, "F: ", std.traits.fullyQualifiedName!F, "\t\t", methodRecipe!F);
-    mixin(methodRecipe!F, " ", methodId!F, ";");
+    // pragma(msg, "F: ", std.traits.fullyQualifiedName!F, "\t\t", vtableEntryRecipe!F);
+    mixin(vtableEntryRecipe!F, " ", vtableEntryId!F, ";");
     // pragma(msg, "");
 }
 // pragma(msg, "");
@@ -57,10 +57,10 @@ static foreach(F; functions) {
 private void shouldMatchReturnType(alias F)() {
     import std.traits: ReturnType;
     import std.conv: text;
-    enum method = methodId!F;
-    static assert(is(ReturnType!F == ReturnType!(mixin(method))),
+    enum vtableEntry = vtableEntryId!F;
+    static assert(is(ReturnType!F == ReturnType!(mixin(vtableEntry))),
                   text("Wrong return type for " ~ __traits(identifier, F),
-                       ": expected ", ReturnType!F.stringof, " but got ", ReturnType!(mixin(method)).stringof));
+                       ": expected ", ReturnType!F.stringof, " but got ", ReturnType!(mixin(vtableEntry)).stringof));
 }
 
 
@@ -82,8 +82,8 @@ private void shouldMatchSelf(alias F, T)() {
     import std.conv: text;
     import std.traits: Parameters;
 
-    enum method = methodId!F;
-    alias params = Parameters!(mixin(method));
+    enum vtableEntry = vtableEntryId!F;
+    alias params = Parameters!(mixin(vtableEntry));
 
     static assert(is(params[0] == T),
                   text("Wrong self type for ", __traits(identifier, F),
@@ -93,13 +93,13 @@ private void shouldMatchSelf(alias F, T)() {
 
 @("type.struct.inc")
 @safe pure unittest {
-    static assert(is(typeof(mixin(methodId!(Struct.inc))) == void function(void*, int) @system));
+    static assert(is(typeof(mixin(vtableEntryId!(Struct.inc))) == void function(void*, int) @system));
 }
 
 
 @("type.struct.safeInc")
 @safe pure unittest {
-    alias T = typeof(mixin(methodId!(Struct.safeInc)));
+    alias T = typeof(mixin(vtableEntryId!(Struct.safeInc)));
     static assert(is(T == void function(void*, int) @safe));
 }
 
@@ -107,16 +107,11 @@ private void shouldMatchSelf(alias F, T)() {
 // FIXME: dmd bug
 @("type.struct.scopeInc")
 @safe pure unittest {
-    alias T = typeof(mixin(methodId!(Struct.scopeInc)));
+    alias T = typeof(mixin(vtableEntryId!(Struct.scopeInc)));
     //static assert(is(T == void function(scope void*, int) @safe));
 }
 
 
-private string newId(alias F)() {
-    return "as_" ~ __traits(identifier, F);
-}
-
-
-private string methodId(alias F)() {
+private string vtableEntryId(alias F)() {
     return "asvtable_" ~ __traits(identifier, F);
 }

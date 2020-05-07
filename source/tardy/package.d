@@ -72,8 +72,8 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
     // FIXME:
     // * argument defaults e.g. int i = 42
     // * overloads
-    import tardy.refraction: methodRecipe;
-    static import std.traits;  // used by methodRecipe
+    import tardy.refraction: vtableEntryRecipe;
+    static import std.traits;  // used by vtableEntryRecipe
 
     private enum fullName(string name) = `Interface.` ~ name;
 
@@ -81,7 +81,7 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
     // Each function pointer has the same return type and one extra parameter
     // in the first position which is the instance or context.
     static foreach(name; __traits(allMembers, Interface)) {
-        mixin(methodRecipe!(mixin(fullName!name))(fullName!name), ` `, name, `;`);
+        mixin(vtableEntryRecipe!(mixin(fullName!name))(fullName!name), ` `, name, `;`);
     }
 
     // The copy constructor has to be in the virtual table since only
@@ -111,8 +111,8 @@ auto vtable(Interface, Instance, Modules...)() {
     static string argName(size_t i) { return `arg` ~ i.text; }
     // func -> arg0, arg1, ...
     static string argsList(string name)() {
-        alias method = mixin(`Interface.`, name);
-        return Parameters!method
+        alias vtableEntry = mixin(`Interface.`, name);
+        return Parameters!vtableEntry
             .length
             .iota
             .map!argName

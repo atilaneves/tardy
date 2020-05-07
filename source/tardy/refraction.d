@@ -29,6 +29,7 @@ string vtableEntryRecipe(alias F)(in string symbolName = "")
         static assert(false);
 
     const returnType = `std.traits.ReturnType!(` ~ symbol ~ `)`;
+
     enum selfType = isConst
         ? `const(void)*`
         : isImmutable
@@ -54,11 +55,23 @@ string vtableEntryRecipe(alias F)(in string symbolName = "")
                 vtableEntryAttrs);
 }
 
+
 string methodRecipe(alias F)(in string symbolName = "")
     in(__ctfe)
      do
 {
-    return "int fun(double, string) @safe pure const";
+    import std.conv: text;
+    import std.traits: fullyQualifiedName;
+    import std.array: join;
+
+    const symbol = symbolName == "" ? fullyQualifiedName!F : symbolName;
+    enum name = __traits(identifier, F);
+    enum attrs = [ __traits(getFunctionAttributes, F) ].join(" ");
+
+    return text(`std.traits.ReturnType!(`, symbol, `)  `,
+                name,
+                `(std.traits.Parameters!(`, symbol, `))`,
+                ` `, attrs);
 }
 
 

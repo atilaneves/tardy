@@ -56,21 +56,33 @@ string vtableEntryRecipe(alias F)(in string symbolName = "")
 }
 
 
+/**
+   Returns a string to be mixed in that replicates the signature
+   of F. The string is meant to be mixed in inside a struct or class
+   so as to be a member function.
+ */
 string methodRecipe(alias F)(in string symbolName = "")
     in(__ctfe)
      do
 {
     import std.conv: text;
-    import std.traits: fullyQualifiedName;
+    import std.traits: fullyQualifiedName, Parameters;
     import std.array: join;
 
     const symbol = symbolName == "" ? fullyQualifiedName!F : symbolName;
     enum name = __traits(identifier, F);
     enum attrs = [ __traits(getFunctionAttributes, F) ].join(" ");
 
+    string[] parameters;
+    static string argName(size_t i) { return text("arg", i); }
+
+    static foreach(i; 0 .. Parameters!F.length) {
+        parameters ~= text(`std.traits.Parameters!(`, symbol, `)[`, i, `] arg`, i);
+    }
+
     return text(`std.traits.ReturnType!(`, symbol, `)  `,
                 name,
-                `(std.traits.Parameters!(`, symbol, `))`,
+                `(`, parameters.join(`, `), `)`,
                 ` `, attrs);
 }
 

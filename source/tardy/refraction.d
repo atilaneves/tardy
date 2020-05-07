@@ -88,7 +88,10 @@ private string returnRecipe(in string symbol)
     return `std.traits.ReturnType!(` ~ symbol ~ `)`;
 }
 
-private string parametersRecipe(alias F)(in string symbol) {
+private string parametersRecipe(alias F)(in string symbol)
+    in(__ctfe)
+    do
+{
 
     import std.array: join;
     import std.traits: Parameters;
@@ -103,7 +106,10 @@ private string parametersRecipe(alias F)(in string symbol) {
 }
 
 
-private string parameterRecipe(alias F, size_t i)(in string symbol) {
+private string parameterRecipe(alias F, size_t i)(in string symbol)
+    in(__ctfe)
+    do
+{
     import std.array: join;
     import std.conv: text;
 

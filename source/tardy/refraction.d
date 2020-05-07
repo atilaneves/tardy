@@ -112,10 +112,22 @@ private string parameterRecipe(alias F, size_t i)(in string symbol)
 {
     import std.array: join;
     import std.conv: text;
+    import std.traits: ParameterDefaults;
 
     const string[] storageClasses = [ __traits(getParameterStorageClasses, F, i) ];
-    return text(storageClasses.join(" "), " ",
 
-                `std.traits.Parameters!(`, symbol, `)[`, i, `] `,
-                `arg`, i);
+    static string defaultValue(alias default_)() {
+        static if(is(default_ == void))
+            return "";
+        else
+            return text(" = ", default_);
+    }
+
+
+    return
+        text(storageClasses.join(" "), " ",
+             `std.traits.Parameters!(`, symbol, `)[`, i, `] `,
+             `arg`, i,
+             defaultValue!(ParameterDefaults!F[i]),
+            );
 }

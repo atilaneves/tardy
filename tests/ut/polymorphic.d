@@ -299,3 +299,25 @@ private int xform(in Transformer t, int i) @safe pure {
     }
     Id.numIds.should == 0;
 }
+
+
+@("defaultValues")
+@safe pure unittest {
+
+    static interface Interface {
+        string fun(int i, int j =1, int k = 2) @safe pure scope const;
+    }
+    alias Poly = Polymorphic!Interface;
+
+    static struct Struct {
+        string fun(int i, int j =1, int k = 2) @safe pure scope const {
+            import std.conv: text;
+            return text("i: ", i, " j: ", j, " k: ", k);
+        }
+    }
+
+    auto obj = Poly(Struct());
+    obj.fun(2, 3, 4).should == "i: 2 j: 3 k: 4";
+    obj.fun(4, 3).should == "i: 4 j: 3 k: 2";
+    obj.fun(5).should == "i: 5 j: 1 k: 2";
+}

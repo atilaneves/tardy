@@ -6,6 +6,7 @@ ctors/dtors:
   * Destructors
   * @disable this();
   * Construct a const/immutable/shared polymorphic object without casting
+  * Forwarding arguments to T's constructor instead of passing a new instance
 
 Copy-on-write: equivalent of `shared_ptr<const Foo>`.
 

@@ -7,8 +7,8 @@ module tardy;
  */
 struct Polymorphic(Interface) if(is(Interface == interface)){
 
+    private immutable(VirtualTable!Interface)* _vtable;
     private void* _instance;
-    private immutable VirtualTable!Interface _vtable;
 
     this(Instance)(auto ref Instance instance) {
         this(constructInstance!Instance(instance), vtable!(Interface, Instance));
@@ -30,7 +30,7 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         }
     }
 
-    private this(void* instance, immutable VirtualTable!Interface vtable) {
+    private this(void* instance, immutable(VirtualTable!Interface)* vtable) {
         _instance = instance;
         _vtable = vtable;
     }
@@ -113,7 +113,7 @@ auto vtable(Interface, Instance, Modules...)() {
     import std.algorithm: map;
     import std.range: iota;
 
-    VirtualTable!Interface ret;
+    auto ret = new VirtualTable!Interface;
 
     // 0 -> arg0, 1 -> arg1, ...
     static string argName(size_t i) { return `arg` ~ i.text; }
@@ -155,7 +155,7 @@ auto vtable(Interface, Instance, Modules...)() {
     static foreach(name; __traits(allMembers, Interface)) {{
 
         // copy type qualifiers from self to what we cast void* to
-        alias P0 = PointerTarget!(Parameters!(mixin(`ret.`, name))[0]);
+        alias P0 = PointerTarget!(Parameters!(mixin(`typeof(ret.`, name, `)`))[0]);
         alias InstancePtr = Ptr!(CopyTypeQualifiers!(P0, Instance));
 
         // FIXME: check that the Instance implements Interface

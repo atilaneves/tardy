@@ -10,25 +10,15 @@ string vtableEntryRecipe(alias F)(in string symbolName = "")
     do
 {
     import std.conv: text;
-    import std.traits: fullyQualifiedName;
     import std.algorithm: canFind, among, filter;
     import std.array: join;
 
-    const symbol = symbolName == "" ? fullyQualifiedName!F : symbolName;
+    const symbol = symbolForTraits!F(symbolName);
     enum attrs = [ __traits(getFunctionAttributes, F) ];
 
-    static if(isMemberFunction!F) {
-        enum isConst = attrs.canFind("const");
-        enum isImmutable = attrs.canFind("immutable");
-        enum isShared = attrs.canFind("shared");
-    } else static if(is(typeof(F) parameters == __parameters)) {
-        enum isConst = is(parameters[0] == const);
-        enum isImmutable = is(parameters[0] == immutable);
-        enum isShared = is(parameters[0] == shared);
-    } else
-        static assert(false);
-
-    const returnType = `std.traits.ReturnType!(` ~ symbol ~ `)`;
+    enum isConst = attrs.canFind("const");
+    enum isImmutable = attrs.canFind("immutable");
+    enum isShared = attrs.canFind("shared");
 
     enum selfType = isConst
         ? `const(void)*`
@@ -49,9 +39,9 @@ string vtableEntryRecipe(alias F)(in string symbolName = "")
         .filter!(a => !isMemberFunctionOnly(a))
         .join(" ");
 
-    return text(returnType,
-                ` function(`, selfAttrs, " ", selfType,
-                `, std.traits.Parameters!(`, symbol, `)) `,
+    return text(returnRecipe(symbol),
+                ` function(`, selfAttrs, " ", selfType, `, `,
+                parametersRecipe!F(symbol), `)`,
                 vtableEntryAttrs);
 }
 
@@ -66,29 +56,60 @@ string methodRecipe(alias F)(in string symbolName = "")
      do
 {
     import std.conv: text;
-    import std.traits: fullyQualifiedName, Parameters;
+    import std.range: iota;
+    import std.algorithm: map;
     import std.array: join;
 
-    const symbol = symbolName == "" ? fullyQualifiedName!F : symbolName;
+    const symbol = symbolForTraits!F(symbolName);
     enum name = __traits(identifier, F);
     enum attrs = [ __traits(getFunctionAttributes, F) ].join(" ");
 
-    string[] parameters;
-    static string argName(size_t i) { return text("arg", i); }
-
-    static foreach(i; 0 .. Parameters!F.length) {
-        parameters ~= text(`std.traits.Parameters!(`, symbol, `)[`, i, `] arg`, i);
-    }
-
-    return text(`std.traits.ReturnType!(`, symbol, `)  `,
+    return text(returnRecipe(symbol), `  `,
                 name,
-                `(`, parameters.join(`, `), `)`,
+                `(`, parametersRecipe!F(symbol), `)`,
                 ` `, attrs);
 }
 
 
-enum isMemberFunction(alias F) =
-    is(__traits(parent, F) == struct)
-    || is(__traits(parent, F) == class)
-    || is(__traits(parent, F) == interface)
-    ;
+private string symbolForTraits(alias F)(in string symbolName = "")
+    in(__ctfe)
+    do
+{
+    import std.traits: fullyQualifiedName;
+    return symbolName == "" ? fullyQualifiedName!F : symbolName;
+}
+
+
+private string returnRecipe(in string symbol)
+    @safe pure
+    in(__ctfe)
+    do
+{
+    return `std.traits.ReturnType!(` ~ symbol ~ `)`;
+}
+
+private string parametersRecipe(alias F)(in string symbol) {
+
+    import std.array: join;
+    import std.traits: Parameters;
+
+    string[] parameters;
+
+    static foreach(i; 0 .. Parameters!F.length) {
+        parameters ~= parameterRecipe!(F, i)(symbol);
+    }
+
+    return parameters.join(", ");
+}
+
+
+private string parameterRecipe(alias F, size_t i)(in string symbol) {
+    import std.array: join;
+    import std.conv: text;
+
+    const string[] storageClasses = [ __traits(getParameterStorageClasses, F, i) ];
+    return text(storageClasses.join(" "), " ",
+
+                `std.traits.Parameters!(`, symbol, `)[`, i, `] `,
+                `arg`, i);
+}

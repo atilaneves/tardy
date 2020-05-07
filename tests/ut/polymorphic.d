@@ -218,10 +218,10 @@ private int xform(in Transformer t, int i) @safe pure {
 
 @("self.immutable")
 @safe pure unittest {
-    static interface IInterface {
+    static interface Interface {
         int fun() @safe pure immutable;
     }
-    alias Interface = Polymorphic!IInterface;
+    alias Poly = Polymorphic!Interface;
 
     static struct Mutable {
         int fun() @safe pure { return 0; }
@@ -235,12 +235,12 @@ private int xform(in Transformer t, int i) @safe pure {
         int fun() @safe pure immutable { return 2; }
     }
 
-    static assert(!__traits(compiles, Interface(Mutable())));
+    static assert(!__traits(compiles, Poly(Mutable())));
 
-    const c = Interface(Const());
+    const c = Poly(Const());
     static assert(!__traits(compiles, c.fun()));
 
-    immutable i = () pure { return Interface(Immutable()); }();
+    immutable i = () pure { return Poly(Immutable()); }();
     i.fun.should == 2;
 }
 
@@ -248,7 +248,7 @@ private int xform(in Transformer t, int i) @safe pure {
 @("storageClass")
 @safe pure unittest {
 
-    static interface IInterface {
+    static interface Interface {
         void storageClasses(
             int normal,
             return scope int* returnScope,
@@ -258,5 +258,7 @@ private int xform(in Transformer t, int i) @safe pure {
         );
     }
 
-    alias Interface = Polymorphic!IInterface;
+    alias Poly = Polymorphic!Interface;
+
+    static assert(is(typeof(Poly.storageClasses) == typeof(Interface.storageClasses)));
 }

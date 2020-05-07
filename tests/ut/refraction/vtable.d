@@ -7,20 +7,12 @@ import std.meta: AliasSeq;
 static import std.traits;  // because refract uses it
 
 
-// The original function declarations *and* the mixed in declarations that ape
-// them need to be at module scope to prevent the compiler from inferring
-// function attributes such as @safe or pure.
-
-private int simple(double d, string s);
-private int safe_(ubyte b, float f, double d) @safe;
-private double pure_(double) @safe pure;
-private int twice(const int i);
-
 struct Struct {
     import modules.types: Point;
 
     int const_() const;
     Point point() const;
+    int pure_() const pure;
     void inc(int amount);
     void safeInc(int amount) @safe;
     void scopeInc(int amount) @safe scope;
@@ -29,13 +21,10 @@ struct Struct {
 alias functions = AliasSeq!(
     Struct.const_,
     Struct.point,
+    Struct.pure_,
     Struct.inc,
     Struct.safeInc,
     Struct.scopeInc,
-    simple,
-    safe_,
-    pure_,
-    twice,
 );
 
 //pragma(msg, "");
@@ -66,14 +55,12 @@ private void shouldMatchReturnType(alias F)() {
 
 @("self.mutable")
 @safe pure unittest {
-    shouldMatchSelf!(simple, void*);
     shouldMatchSelf!(Struct.inc, void*);
 }
 
 
 @("self.const")
 @safe pure unittest {
-    shouldMatchSelf!(twice, const(void)*);
     shouldMatchSelf!(Struct.const_, const(void)*);
 }
 

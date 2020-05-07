@@ -99,6 +99,9 @@ private void shouldMatchSelf(alias F, T)() {
 }
 
 
-private string vtableEntryId(alias F)() {
+private string vtableEntryId(alias F)()
+    in(__ctfe)
+    do
+{
     return "asvtable_" ~ __traits(identifier, F);
 }

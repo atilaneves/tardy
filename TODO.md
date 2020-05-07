@@ -18,3 +18,7 @@ Policies:
    Order of declaration of instance and vtable (could affect speed and/or alignment)
    value semantics or not (default yes)
    opCmp, maybe other operators?
+
+Plug:
+  * Currently instances can have non-pure implementations even if the interface says
+    pure. Fix it. Same with scope. const and @safe are correctly handled.

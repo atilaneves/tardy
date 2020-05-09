@@ -1,13 +1,10 @@
 Proper refraction
-  * Default values for parameters
   * Overloads
 
 ctors/dtors:
   * @disable this();
   * Construct a const/immutable/shared polymorphic object without casting
   * Forwarding arguments to T's constructor instead of passing a new instance
-
-Copy-on-write: equivalent of `shared_ptr<const Foo>`.
 
 Policies:
    Storage of instance (heap, insitu/heap, insitu)
@@ -17,6 +14,7 @@ Policies:
    Order of declaration of instance and vtable (could affect speed and/or alignment)
    value semantics or not (default yes)
    opCmp, maybe other operators?
+   Copy-on-write: equivalent of `shared_ptr<const Foo>`.
 
 Plug:
   * Currently instances can have non-pure implementations even if the interface says

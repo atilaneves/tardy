@@ -353,3 +353,25 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     obj.fun(4, 3).should == "i: 4 j: 3 k: 2";
     obj.fun(5).should == "i: 5 j: 1 k: 2";
 }
+
+
+@("struct.stateless.pure")
+@safe pure unittest {
+
+    static interface Interface {
+        import std.traits: FA = FunctionAttribute;
+
+        enum CopyConstructorAttrs = FA.safe | FA.pure_;
+        enum DestructorAttrs = FA.safe | FA.pure_;
+
+        int transform(int) @safe pure const;
+    }
+    alias Poly = Polymorphic!Interface;
+
+    static struct Struct {
+        int transform(int i) @safe pure const { return i * 2; }
+    }
+
+    const s = Poly(Struct());
+    const copy = s;
+}

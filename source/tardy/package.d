@@ -49,16 +49,18 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
     private enum numParams(string name) = std.traits.Parameters!(memberFunction!name).length;
 
     static foreach(memberName; __traits(allMembers, Interface)) {
+        static if(is(typeof(__traits(getMember, Interface, memberName)) == function)) {
 
-        mixin(methodRecipe!(memberFunction!memberName)("Interface." ~ memberName),
-              q{{
+            mixin(methodRecipe!(memberFunction!memberName)("Interface." ~ memberName),
+                  q{{
 
-                  assert(_vtable.%s !is null);
-                  return _vtable.%s(_instance, %s);
+                      assert(_vtable.%s !is null);
+                      return _vtable.%s(_instance, %s);
 
-              }}.format(memberName, memberName, argsCall(numParams!memberName))
-        );
+                  }}.format(memberName, memberName, argsCall(numParams!memberName))
+            );
 
+        }
     }
 }
 
@@ -86,6 +88,7 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
     // * overloads
     import tardy.refraction: vtableEntryRecipe;
     static import std.traits;  // used by vtableEntryRecipe
+    import std.traits: FA = FunctionAttribute;
 
     private enum fullName(string name) = `Interface.` ~ name;
 
@@ -93,17 +96,45 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
     // Each function pointer has the same return type and one extra parameter
     // in the first position which is the instance or context.
     static foreach(name; __traits(allMembers, Interface)) {
-        mixin(vtableEntryRecipe!(mixin(fullName!name))(fullName!name), ` `, name, `;`);
+        static if(is(typeof(__traits(getMember, Interface, name)) == function)) {
+            mixin(vtableEntryRecipe!(mixin(fullName!name))(fullName!name), ` `, name, `;`);
+        }
     }
+
+    // The destructor and copy constructor have to be in the virtual table
+    // since the only point we know the static type is when constructing.
+    alias CopyConstructorBase = void* function(scope const(void)* otherInstancePtr);
+    alias DestructorBase = void function(scope const(void)* self);
+
+    alias CopyConstructor = std.traits.SetFunctionAttributes!(
+        CopyConstructorBase,
+        "D",
+        functionAttributesFromInterface!(Interface, "CopyConstructorAttrs"),
+    );
+    alias Destructor = std.traits.SetFunctionAttributes!(
+        DestructorBase,
+        "D",
+        functionAttributesFromInterface!(Interface, "DestructorAttrs"),
+    );
 
     // The copy constructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
-    void* function(scope const(void)* otherInstancePtr) @safe copyConstructor;
+    CopyConstructor copyConstructor;
 
     // The destructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
-    void function(scope const(void)* self) @safe destructor;
+    Destructor destructor;
 
+}
+
+
+private auto functionAttributesFromInterface(Interface, string name)() {
+    import std.traits: FA = FunctionAttribute;
+    static if(__traits(hasMember, Interface, name)) {
+        static assert(is(typeof(__traits(getMember, Interface, name)) == FA));
+        return __traits(getMember, Interface, name);
+    } else
+        return FA.safe;
 }
 
 
@@ -162,22 +193,26 @@ auto vtable(Interface, Instance, Modules...)() {
     }
 
     static foreach(name; __traits(allMembers, Interface)) {{
+        static if(is(typeof(__traits(getMember, Interface, name)) == function)) {
 
-        // copy type qualifiers from self to what we cast void* to
-        alias P0 = PointerTarget!(Parameters!(mixin(`typeof(ret.`, name, `)`))[0]);
-        alias InstancePtr = Ptr!(CopyTypeQualifiers!(P0, Instance));
+            // copy type qualifiers from self to what we cast void* to
+            alias P0 = PointerTarget!(Parameters!(mixin(`typeof(ret.`, name, `)`))[0]);
+            alias InstancePtr = Ptr!(CopyTypeQualifiers!(P0, Instance));
 
-        // FIXME: check that the Instance implements Interface
+            // FIXME: check that the Instance implements Interface
 
-        // import any modules where we have to look for UFCS implementations
-        static foreach(module_; Modules) {
-            static if(__traits(hasMember, moduleSymbol!module_, name))
-                mixin(importMixin!(module_, name));
+            // import any modules where we have to look for UFCS implementations
+            static foreach(module_; Modules) {
+                static if(__traits(hasMember, moduleSymbol!module_, name))
+                    mixin(importMixin!(module_, name));
+            }
+
+            // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
+            // the cast is @trusted because here we know the static type
+            mixin(`ret.`, name, ` = `,
+                  `(self, `, argsList!name, `) => `,
+                  `(() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!name, `);`);
         }
-
-        // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
-        // the cast is @trusted because here we know the static type
-        mixin(`ret.`, name, ` = (self, `, argsList!name, `) => (() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!name, `);`);
     }}
 
     ret.copyConstructor = (otherPtr) {

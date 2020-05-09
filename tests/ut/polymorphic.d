@@ -261,7 +261,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     const c = Poly(Const());
     static assert(!__traits(compiles, c.fun()));
 
-    immutable i = () @trusted { return cast(immutable) Poly(Immutable()); }();
+    immutable i = immutable Poly(Immutable());
     i.fun.should == 2;
 }
 

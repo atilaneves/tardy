@@ -1,9 +1,6 @@
 Allow UFCS that take 1st argument by ref or even value
 (virtual function must be const in that case) to participate
 
-ctors/dtors:
-  * Construct a const/immutable/shared polymorphic object without casting
-
 Policies:
    Storage of instance (heap, insitu/heap, insitu)
    Storage of vtable (heap, insitu/heap, insitu)

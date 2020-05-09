@@ -10,7 +10,7 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
     private immutable(VirtualTable!Interface)* _vtable;
     private void* _instance;
 
-    this(Instance)(auto ref Instance instance) {
+    this(this This, Instance)(auto ref Instance instance) {
         this(constructInstance!Instance(instance), vtable!(Interface, Instance));
     }
 
@@ -46,8 +46,10 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         }
     }
 
-    private this(void* instance, immutable(VirtualTable!Interface)* vtable) {
-        _instance = instance;
+    private this(this This)(void* instance, immutable(VirtualTable!Interface)* vtable) {
+        // the cast is because of type qualifiers, and is safe because this constructor
+        // is private
+        _instance = () @trusted { return cast(typeof(_instance)) instance; }();
         _vtable = vtable;
     }
 

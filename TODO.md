@@ -11,6 +11,7 @@ ctors/dtors:
 Copy-on-write: equivalent of `shared_ptr<const Foo>`.
 
 Policies:
+   Signature of the copy constructor (@safe? pure?)
    Storage of instance (heap, insitu/heap, insitu)
    Storage of vtable (heap, insitu/heap, insitu)
    Allocation of instance (GC, allocator, ...)

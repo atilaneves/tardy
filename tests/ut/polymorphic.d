@@ -99,7 +99,7 @@ private int xform(in Transformer t, int i) @safe pure {
 }
 
 
-@("int")
+@("scalar.int")
 @safe unittest {
     auto three = Transformer.create!"modules.ufcs.transform"(3);
     xform(three, 2).should == 6;
@@ -121,7 +121,7 @@ private int xform(in Transformer t, int i) @safe pure {
 }
 
 
-@("double")
+@("scalar.double")
 @safe unittest {
     auto double_ = Transformer.create!"modules.ufcs.transform"(3.3);
     xform(double_, 2).should == 5;
@@ -213,6 +213,27 @@ private int xform(in Transformer t, int i) @safe pure {
         "Negative",
         "Point(2, 3)",
     ];
+}
+
+
+@("array.xform")
+// not pure because the copy constructor isn't (and can't be)
+@safe unittest {
+    static struct Twice {
+        int transform(int i) @safe pure const { return i * 2; }
+    }
+    static struct Multiplier {
+        int i;
+        int transform(int j) @safe pure const { return i * j; }
+    }
+
+    xform(Transformer(Twice()), 1).should == 2;
+
+    auto xformers = [ Transformer(Twice()), Transformer(Multiplier(3)) ];
+    xform(xformers[0], 1).should == 2;
+    xform(xformers[0], 2).should == 4;
+    xform(xformers[1], 1).should == 3;
+    xform(xformers[1], 2).should == 6;
 }
 
 

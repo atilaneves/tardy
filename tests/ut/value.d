@@ -8,6 +8,7 @@ import tardy;
 
 // verify that copying obeys value semantics
 @("copy")
+// not pure because the copy constructor isn't (and can't)
 @safe unittest {
     import std.algorithm.iteration: map;
 
@@ -51,7 +52,9 @@ import tardy;
     auto bar = printables[2];
     bar.stringify.should == "Bar(2)";
     bar.inc;
-    bar.stringify.should == "Bar(3)";
+    bar.inc;
+    bar.inc;
+    bar.stringify.should == "Bar(5)";
 
     strings = printables.map!call;
     () @trusted {

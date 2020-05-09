@@ -15,7 +15,3 @@ Policies:
    value semantics or not (default yes)
    opCmp, maybe other operators?
    Copy-on-write: equivalent of `shared_ptr<const Foo>`.
-
-Plug:
-  * Currently instances can have non-pure implementations even if the interface says
-    pure. Fix it. Same with scope. const and @safe are correctly handled.

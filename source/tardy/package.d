@@ -35,6 +35,10 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         _vtable = vtable;
     }
 
+    ~this() {
+        _vtable.destructor(_instance);
+    }
+
     // From here we declare one member function per declaration in Interface, with
     // the same signature
     import tardy.refraction: methodRecipe;
@@ -95,6 +99,11 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
     // The copy constructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
     void* function(scope const(void)* otherInstancePtr) @safe copyConstructor;
+
+    // The destructor has to be in the virtual table since only
+    // Polymorphic's constructor knows what the static type is.
+    void function(scope const(void)* self) @safe destructor;
+
 }
 
 
@@ -176,6 +185,20 @@ auto vtable(Interface, Instance, Modules...)() {
         auto otherInstancePtr = () @trusted { return cast(const(Instance)*) otherPtr; }();
         return constructInstance!Instance(*otherInstancePtr);
     };
+
+    static if(__traits(hasMember, Instance, "__dtor")) {
+        ret.destructor = (selfUntyped) {
+            import std.traits: isSafe;
+
+            // Like above, casting is @trusted because we know the static type
+            auto self = () @trusted { return cast(const(Instance)*) selfUntyped; }();
+            static if(isSafe!(__traits(getMember, Instance, "__dtor")))
+                destroy(*self);
+            else
+                static assert(false, "Cannot call unsafe destructor from " ~ T.stringof);
+        };
+    } else
+        ret.destructor = (selfUntyped) {};
 
     return ret;
 }

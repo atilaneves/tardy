@@ -5,12 +5,12 @@ import ut;
 
 
 private interface ITransformer {
-    int transform(int) @safe pure const;
+    int transform(int) @safe /* pure */ const;
 }
 
 private alias Transformer = Polymorphic!ITransformer;
 
-private int xform(in Transformer t, int i) @safe pure {
+private int xform(in Transformer t, int i) @safe /* pure */ {
     return t.transform(i);
 }
 
@@ -19,7 +19,7 @@ private int xform(in Transformer t, int i) @safe pure {
 @safe unittest {
 
     static struct Twice {
-        int transform(int i) @safe pure const { return i * 2; }
+        int transform(int i) @safe /* pure */ const { return i * 2; }
     }
 
     const twice = Transformer(Twice());
@@ -33,7 +33,7 @@ private int xform(in Transformer t, int i) @safe pure {
 @safe unittest {
 
     static struct Thrice {
-        int transform(int i) @safe pure const { return i * 3; }
+        int transform(int i) @safe /* pure */ const { return i * 3; }
     }
 
     const thrice = Transformer(Thrice());
@@ -58,7 +58,7 @@ private int xform(in Transformer t, int i) @safe pure {
 
     static struct Multiplier {
         int i;
-        int transform(int j) @safe pure const { return i * j; }
+        int transform(int j) @safe /* pure */ const { return i * j; }
     }
 
     xform(Transformer(Multiplier(2)), 3).should == 6;
@@ -72,7 +72,7 @@ private int xform(in Transformer t, int i) @safe pure {
 @safe unittest {
 
     static class Thrice {
-        int transform(int i) @safe pure const { return i * 3; }
+        int transform(int i) @safe /* pure */ const { return i * 3; }
     }
 
     const thrice = Transformer(new Thrice());
@@ -87,9 +87,9 @@ private int xform(in Transformer t, int i) @safe pure {
 
     static class Multiplier {
         int i;
-        this(int i) @safe pure { this.i = i; }
-        this(const Multiplier other) @safe pure { this.i = other.i; }
-        int transform(int j) @safe pure const { return i * j; }
+        this(int i) @safe /* pure */ { this.i = i; }
+        this(const Multiplier other) @safe /* pure */ { this.i = other.i; }
+        int transform(int j) @safe /* pure */ const { return i * j; }
     }
 
     xform(Transformer(new Multiplier(2)), 3).should == 6;
@@ -130,15 +130,15 @@ private int xform(in Transformer t, int i) @safe pure {
 }
 
 
-@("array.pure")
-@safe pure unittest {
+@("array./* pure */")
+@safe /* pure */ unittest {
     static import modules.ufcs.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
     import std.array: array;
 
     static interface IPrintable {
-        string stringify() @safe pure const;
+        string stringify() @safe /* pure */ const;
     }
 
     alias Printable = Polymorphic!IPrintable;
@@ -217,14 +217,14 @@ private int xform(in Transformer t, int i) @safe pure {
 
 
 @("array.xform")
-// not pure because the copy constructor isn't (and can't be)
+// not /* pure */ because the copy constructor isn't (and can't be)
 @safe unittest {
     static struct Twice {
-        int transform(int i) @safe pure const { return i * 2; }
+        int transform(int i) @safe /* pure */ const { return i * 2; }
     }
     static struct Multiplier {
         int i;
-        int transform(int j) @safe pure const { return i * j; }
+        int transform(int j) @safe /* pure */ const { return i * j; }
     }
 
     xform(Transformer(Twice()), 1).should == 2;
@@ -238,22 +238,22 @@ private int xform(in Transformer t, int i) @safe pure {
 
 
 @("self.immutable")
-@safe pure unittest {
+@safe /* pure */ unittest {
     static interface Interface {
-        int fun() @safe pure immutable;
+        int fun() @safe /* pure */ immutable;
     }
     alias Poly = Polymorphic!Interface;
 
     static struct Mutable {
-        int fun() @safe pure { return 0; }
+        int fun() @safe /* pure */ { return 0; }
     }
 
     static struct Const {
-        int fun() @safe pure const { return 1; }
+        int fun() @safe /* pure */ const { return 1; }
     }
 
     static struct Immutable {
-        int fun() @safe pure immutable { return 2; }
+        int fun() @safe /* pure */ immutable { return 2; }
     }
 
     static assert(!__traits(compiles, Poly(Mutable())));
@@ -261,13 +261,13 @@ private int xform(in Transformer t, int i) @safe pure {
     const c = Poly(Const());
     static assert(!__traits(compiles, c.fun()));
 
-    immutable i = () pure { return Poly(Immutable()); }();
+    immutable i = () @trusted { return cast(immutable) Poly(Immutable()); }();
     i.fun.should == 2;
 }
 
 
 @("storageClass")
-@safe pure unittest {
+@safe /* pure */ unittest {
 
     static interface Interface {
         void storageClasses(
@@ -285,12 +285,11 @@ private int xform(in Transformer t, int i) @safe pure {
 }
 
 
-@ShouldFail
 @("dtor")
 @safe unittest {
 
     static interface Interface {
-        int value() @safe @nogc pure const;
+        int value() @safe @nogc /* pure */ const;
     }
     alias Poly = Polymorphic!Interface;
 
@@ -298,14 +297,26 @@ private int xform(in Transformer t, int i) @safe pure {
         static int numIds;
         int i;
 
+        @disable this();
+
         this(int i) {
+            writelnUt(&this, " ctor");
             this.i = i;
             ++numIds;
         }
 
-        ~this() { --numIds; }
+        this(ref scope const Id other) {
+            writelnUt(&this, " copy ctor");
+            i = other.i;
+            ++numIds;
+        }
 
-        int value() @safe @nogc pure const { return i; }
+        ~this() inout {
+            writelnUt(&this, " dtor");
+            --numIds;
+        }
+
+        int value() @safe @nogc /* pure */ const { return i; }
     }
 
     Id.numIds.should == 0;
@@ -323,15 +334,15 @@ private int xform(in Transformer t, int i) @safe pure {
 
 
 @("defaultValues")
-@safe pure unittest {
+@safe /* pure */ unittest {
 
     static interface Interface {
-        string fun(int i, int j = 1, int k = 2) @safe pure scope const;
+        string fun(int i, int j = 1, int k = 2) @safe /* pure */ scope const;
     }
     alias Poly = Polymorphic!Interface;
 
     static struct Struct {
-        string fun(int i, int j, int k) @safe pure scope const {
+        string fun(int i, int j, int k) @safe /* pure */ scope const {
             import std.conv: text;
             return text("i: ", i, " j: ", j, " k: ", k);
         }

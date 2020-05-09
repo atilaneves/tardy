@@ -51,7 +51,10 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
         _vtable = vtable;
     }
 
-    ~this() {
+    ~this()
+        in(_vtable !is null)
+        do
+    {
         _vtable.destructor(_instance);
     }
 

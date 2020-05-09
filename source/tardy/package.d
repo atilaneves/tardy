@@ -230,8 +230,7 @@ auto vtable(Interface, Instance, Modules...)() {
                 // the cast is @trusted because here we know the static type
                 mixin(`ret.`, name, i.text, ` = `,
                       `(self, `, argsList!(name, i), `) => `,
-                      `(() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!(name, i
-                          ), `);`);
+                      `(() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!(name, i), `);`);
             }}
         }
     }

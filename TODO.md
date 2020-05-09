@@ -1,11 +1,7 @@
 Allow UFCS that take 1st argument by ref or even value
 (virtual function must be const in that case) to participate
 
-Proper refraction
-  * Overloads
-
 ctors/dtors:
-  * @disable this();
   * Construct a const/immutable/shared polymorphic object without casting
   * Forwarding arguments to T's constructor instead of passing a new instance
 

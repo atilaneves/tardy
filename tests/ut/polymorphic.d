@@ -375,3 +375,29 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     const s = Poly(Struct());
     const copy = s;
 }
+
+
+@("struct.stateful.overload")
+@safe pure unittest {
+    static interface Interface {
+        import std.traits: FA = FunctionAttribute;
+        enum DestructorAttrs = FA.safe | FA.pure_;
+        int calc(int) @safe pure const;
+        int calc(int, int) @safe pure const;
+    }
+    alias Poly = Polymorphic!Interface;
+
+    static struct Adder {
+        int i;
+        int calc(int j) @safe pure const { return i + j; }
+        int calc(int j, int k) @safe pure const { return i + j + k; }
+    }
+
+    const poly = Poly(Adder(3));
+
+    poly.calc(1).should == 4;
+    poly.calc(2).should == 5;
+
+    poly.calc(1, 2).should == 6;
+    poly.calc(1, 3).should == 7;
+}

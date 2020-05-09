@@ -45,21 +45,34 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
     import std.format: format;
     static import std.traits;
 
-    private alias memberFunction(string name) = __traits(getMember, Interface, name);
-    private enum numParams(string name) = std.traits.Parameters!(memberFunction!name).length;
+    private alias overload(string name, size_t i) = __traits(getOverloads, Interface, name)[i];
+    private enum numParams(string name, size_t i) = std.traits.Parameters!(overload!(name, i)).length;
+
+    static string memberFunctionMixin(string memberName, size_t i)() {
+        import std.conv: text;
+
+        enum name = text(`__traits(getOverloads, Interface, "`, memberName, `")[`, i, `]`);
+
+        return
+            methodRecipe!(overload!(memberName, i))
+                         (name)
+            ~
+            q{{
+
+                assert(_vtable.%s%d !is null);
+                return _vtable.%s%d(_instance, %s);
+
+            }}.format(
+                memberName, i,
+                memberName, i, argsCall(numParams!(memberName, i)),
+            );
+    }
 
     static foreach(memberName; __traits(allMembers, Interface)) {
         static if(is(typeof(__traits(getMember, Interface, memberName)) == function)) {
-
-            mixin(methodRecipe!(memberFunction!memberName)("Interface." ~ memberName),
-                  q{{
-
-                      assert(_vtable.%s !is null);
-                      return _vtable.%s(_instance, %s);
-
-                  }}.format(memberName, memberName, argsCall(numParams!memberName))
-            );
-
+            static foreach(i, overload; __traits(getOverloads, Interface, memberName)) {
+                mixin(memberFunctionMixin!(memberName, i));
+            }
         }
     }
 }
@@ -83,21 +96,24 @@ private string argsCall(size_t length)
    in the interface type.
  */
 struct VirtualTable(Interface) if(is(Interface == interface)) {
-    // FIXME:
-    // * argument defaults e.g. int i = 42
-    // * overloads
     import tardy.refraction: vtableEntryRecipe;
-    static import std.traits;  // used by vtableEntryRecipe
     import std.traits: FA = FunctionAttribute;
+    import std.conv: text;
+    static import std.traits;  // used by vtableEntryRecipe
 
-    private enum fullName(string name) = `Interface.` ~ name;
+    private enum fullName(string name, size_t i) = text(`__traits(getOverloads, Interface, "`, name, `")[`, i, `]`);
 
     // Here we declare one function pointer per declaration in Interface.
     // Each function pointer has the same return type and one extra parameter
     // in the first position which is the instance or context.
     static foreach(name; __traits(allMembers, Interface)) {
         static if(is(typeof(__traits(getMember, Interface, name)) == function)) {
-            mixin(vtableEntryRecipe!(mixin(fullName!name))(fullName!name), ` `, name, `;`);
+            static foreach(i, overload; __traits(getOverloads, Interface, name)) {
+                // e.g. ReturnType!(I.foo) function(void*, Parameters!(I.foo)) foo;
+                mixin(vtableEntryRecipe!(__traits(getOverloads, Interface, name)[i])
+                                        (fullName!(name, i)),
+                      ` `, name, i.text, `;`);
+            }
         }
     }
 
@@ -158,8 +174,9 @@ auto vtable(Interface, Instance, Modules...)() {
     // 0 -> arg0, 1 -> arg1, ...
     static string argName(size_t i) { return `arg` ~ i.text; }
     // func -> arg0, arg1, ...
-    static string argsList(string name)() {
-        alias vtableEntry = mixin(`Interface.`, name);
+    static string argsList(string name, size_t i)() {
+        import std.conv: text;
+        alias vtableEntry = mixin(text(`__traits(getOverloads, Interface, "`, name, `")[`, i, `]`));
         return Parameters!vtableEntry
             .length
             .iota
@@ -192,28 +209,32 @@ auto vtable(Interface, Instance, Modules...)() {
             alias Ptr = T*;
     }
 
-    static foreach(name; __traits(allMembers, Interface)) {{
+    static foreach(name; __traits(allMembers, Interface)) {
         static if(is(typeof(__traits(getMember, Interface, name)) == function)) {
+            static foreach(i, overload; __traits(getOverloads, Interface, name)) {{
 
-            // copy type qualifiers from self to what we cast void* to
-            alias P0 = PointerTarget!(Parameters!(mixin(`typeof(ret.`, name, `)`))[0]);
-            alias InstancePtr = Ptr!(CopyTypeQualifiers!(P0, Instance));
+                // P0 is the first parameter which is the context pointer or self
+                alias P0 = PointerTarget!(Parameters!(mixin(`typeof(ret.`, name, i.text, `)`))[0]);
+                // copy type qualifiers (const, ...) from self to what we cast void* to
+                alias InstancePtr = Ptr!(CopyTypeQualifiers!(P0, Instance));
 
-            // FIXME: check that the Instance implements Interface
+                // FIXME: better error messages when Instance doesn't implement Interface?
 
-            // import any modules where we have to look for UFCS implementations
-            static foreach(module_; Modules) {
-                static if(__traits(hasMember, moduleSymbol!module_, name))
-                    mixin(importMixin!(module_, name));
-            }
+                // import any modules where we have to look for UFCS implementations
+                static foreach(module_; Modules) {
+                    static if(__traits(hasMember, moduleSymbol!module_, name))
+                        mixin(importMixin!(module_, name));
+                }
 
-            // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
-            // the cast is @trusted because here we know the static type
-            mixin(`ret.`, name, ` = `,
-                  `(self, `, argsList!name, `) => `,
-                  `(() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!name, `);`);
+                // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
+                // the cast is @trusted because here we know the static type
+                mixin(`ret.`, name, i.text, ` = `,
+                      `(self, `, argsList!(name, i), `) => `,
+                      `(() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!(name, i
+                          ), `);`);
+            }}
         }
-    }}
+    }
 
     ret.copyConstructor = (otherPtr) {
         // Like above, casting is @trusted because we know the static type

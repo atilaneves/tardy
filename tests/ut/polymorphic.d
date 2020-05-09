@@ -401,3 +401,23 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     poly.calc(1, 2).should == 6;
     poly.calc(1, 3).should == 7;
 }
+
+
+@("struct.stateful.create")
+@safe pure unittest {
+    static interface Interface {
+        import std.traits: FA = FunctionAttribute;
+        enum DestructorAttrs = FA.safe | FA.pure_;
+        int calc(int) @safe pure const;
+    }
+    alias Poly = Polymorphic!Interface;
+
+    static struct Adder {
+        int i;
+        int calc(int j) @safe pure const { return i + j; }
+    }
+
+    const poly = Poly.create!Adder(3);
+    poly.calc(1).should == 4;
+    poly.calc(2).should == 5;
+}

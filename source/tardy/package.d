@@ -21,12 +21,28 @@ struct Polymorphic(Interface) if(is(Interface == interface)){
 
     /**
        This factory function makes it possible to pass in modules
-       to look for UFCS functions for the instance
+       to look for UFCS functions for the instance.
      */
     template create(Modules...) {
         static create(Instance)(Instance instance) {
-            return Polymorphic!Interface(constructInstance!Instance(instance),
-                                         vtable!(Interface, Instance, Modules));
+            return Polymorphic!Interface(
+                constructInstance!Instance(instance),
+                vtable!(Interface, Instance, Modules)
+            );
+        }
+    }
+    /**
+       This factory function makes it possible to forward arguments to
+       the T's constructor instead of taking one by value and to pass
+       in modules to look for UFCS functions for the instance.
+     */
+
+    template create(T, Modules...) {
+        static create(A...)(auto ref A args) {
+            return Polymorphic!Interface(
+                constructInstance!T(args),
+                vtable!(Interface, T, Modules)
+            );
         }
     }
 

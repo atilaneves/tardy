@@ -3,7 +3,6 @@ Allow UFCS that take 1st argument by ref or even value
 
 ctors/dtors:
   * Construct a const/immutable/shared polymorphic object without casting
-  * Forwarding arguments to T's constructor instead of passing a new instance
 
 Policies:
    Storage of instance (heap, insitu/heap, insitu)

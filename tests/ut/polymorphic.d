@@ -130,9 +130,18 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 }
 
 
-@("scalar.pointer.transform.double")
+@("scalar.value.transform.double")
 @safe unittest {
     auto double_ = Transformer.create!"modules.ufcs.value.transform"(3.3);
+    xform(double_, 2).should == 5;
+    xform(double_, 3).should == 6;
+    xform(double_, 4).should == 7;
+}
+
+
+@("scalar.ref.transform.double")
+@safe unittest {
+    auto double_ = Transformer.create!"modules.ufcs.ref_.transform"(3.3);
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;
     xform(double_, 4).should == 7;

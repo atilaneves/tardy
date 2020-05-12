@@ -231,6 +231,12 @@ auto vtable(Interface, Instance, Modules...)() {
             alias Ptr = T*;
     }
 
+    static string assignRecipe(string function_, string vtableEntry, size_t i)() {
+        return q{
+            ret.%s%d = (self, %s) => %s(self).%s(%s);
+        }.format(vtableEntry, i, argsList!(vtableEntry, i), function_, vtableEntry, argsList!(vtableEntry, i));
+    }
+
     static foreach(name; __traits(allMembers, Interface)) {
         static if(is(typeof(__traits(getMember, Interface, name)) == function)) {
             static foreach(i, overload; __traits(getOverloads, Interface, name)) {{
@@ -250,22 +256,40 @@ auto vtable(Interface, Instance, Modules...)() {
 
                 // the cast is @trusted because here we know the static type
                 static if(is(Instance == class)) {
-                    static auto instance(T)(T self) @trusted {
+                    static instanceByRef(T)(T self) @trusted {
                         return cast(InstancePtr) self;
                     }
+
+                    static instanceByPtr(T)(T self) @trusted {
+                        return cast(InstancePtr) self;
+                    }
+
                 } else {
-                    static ref instance(T)(T self) @trusted {
+                    static ref instanceByRef(T)(T self) @trusted {
                         return *(cast(InstancePtr) self);
+                    }
+
+                    static instanceByPtr(T)(T self) @trusted {
+                        return cast(InstancePtr) self;
                     }
                 }
 
+                // Both of these are essentially:
                 // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
-                enum assignMixin = q{
-                    ret.%s%d = (self, %s) pure => instance(self).%s(%s);
-                }.format(name, i, argsList!(name, i), name, argsList!(name, i));
+                enum byRefRecipe = assignRecipe!(`instanceByRef`, name, i);
+                enum byPtrRecipe = assignRecipe!(`instanceByPtr`, name, i);
+                // pragma(msg, byRefRecipe);
+                // pragma(msg, byPtrRecipe);
 
-                // pragma(msg, assignMixin);
-                mixin(assignMixin);
+                void implByRef()() { mixin(byRefRecipe); }
+                void implByPtr()() { mixin(byPtrRecipe); }
+
+                static if(is(typeof(&implByPtr!()))) {
+                    mixin(byPtrRecipe);
+                } else static if(is(typeof(&implByRef!()))) {
+                    mixin(byRefRecipe);
+                } else
+                    static assert(false, "Neither of these compiled:" ~ byRefRecipe ~ byPtrRecipe);
             }}
         }
     }

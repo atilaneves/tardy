@@ -1,4 +1,4 @@
-module modules.ufcs.stringify;
+module modules.ufcs.pointer.stringify;
 
 
 import modules.types: Negative, Point, String;

@@ -1,4 +1,4 @@
-module modules.ufcs.transform;
+module modules.ufcs.pointer.transform;
 
 
 int transform(const(int)* i, int j) @safe pure {

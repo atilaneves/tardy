@@ -101,7 +101,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("scalar.int")
 @safe unittest {
-    auto three = Transformer.create!"modules.ufcs.transform"(3);
+    auto three = Transformer.create!"modules.ufcs.pointer.transform"(3);
     xform(three, 2).should == 6;
     xform(three, 3).should == 9;
 }
@@ -109,7 +109,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 @("scalar.modules")
 @safe unittest {
     auto four = Transformer.create!(
-             "modules.ufcs.transform",
+             "modules.ufcs.pointer.transform",
              // pass in a module that has nothing to with anything to test
              // that it still works if there's no function with that
              // name in it
@@ -123,7 +123,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("scalar.double")
 @safe unittest {
-    auto double_ = Transformer.create!"modules.ufcs.transform"(3.3);
+    auto double_ = Transformer.create!"modules.ufcs.pointer.transform"(3.3);
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;
     xform(double_, 4).should == 7;
@@ -132,7 +132,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("array.pure")
 @safe /* pure */ unittest {
-    static import modules.ufcs.stringify;
+    static import modules.ufcs.pointer.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
     import std.array: array;
@@ -143,7 +143,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
     alias Printable = Polymorphic!IPrintable;
 
-    auto printable = Printable.create!(modules.ufcs.stringify)(42);
+    auto printable = Printable.create!(modules.ufcs.pointer.stringify)(42);
     printable.stringify.should == "42";
 }
 
@@ -151,7 +151,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("array.safe")
 @safe unittest {
-    static import modules.ufcs.stringify;
+    static import modules.ufcs.pointer.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
     import std.array: array;
@@ -163,13 +163,13 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     alias Printable = Polymorphic!IPrintable;
 
     auto printables = [
-        Printable.create!(modules.ufcs.stringify)(42),
-        Printable.create!(modules.ufcs.stringify)(3.3),
+        Printable.create!(modules.ufcs.pointer.stringify)(42),
+        Printable.create!(modules.ufcs.pointer.stringify)(3.3),
         // FIXME: can't create `string` with `new`
-        // Printable.create!(modules.ufcs.stringify)("foobar"),
-        Printable.create!(modules.ufcs.stringify)(String("quux")),
-        Printable.create!(modules.ufcs.stringify)(Negative()),
-        Printable.create!(modules.ufcs.stringify)(Point(2, 3)),
+        // Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
+        Printable.create!(modules.ufcs.pointer.stringify)(String("quux")),
+        Printable.create!(modules.ufcs.pointer.stringify)(Negative()),
+        Printable.create!(modules.ufcs.pointer.stringify)(Point(2, 3)),
     ];
 
     // the conversion to an array is to maintain @safeness
@@ -186,7 +186,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("array.system")
 @system unittest {
-    static import modules.ufcs.stringify;
+    static import modules.ufcs.pointer.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
 
@@ -197,13 +197,13 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     alias Printable = Polymorphic!IPrintable;
 
     auto printables = [
-        Printable.create!(modules.ufcs.stringify)(42),
-        Printable.create!(modules.ufcs.stringify)(3.3),
+        Printable.create!(modules.ufcs.pointer.stringify)(42),
+        Printable.create!(modules.ufcs.pointer.stringify)(3.3),
         // FIXME: can't create `string` with `new`
-        // Printable.create!(modules.ufcs.stringify)("foobar"),
-        Printable.create!(modules.ufcs.stringify)(String("quux")),
-        Printable.create!(modules.ufcs.stringify)(Negative()),
-        Printable.create!(modules.ufcs.stringify)(Point(2, 3)),
+        // Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
+        Printable.create!(modules.ufcs.pointer.stringify)(String("quux")),
+        Printable.create!(modules.ufcs.pointer.stringify)(Negative()),
+        Printable.create!(modules.ufcs.pointer.stringify)(Point(2, 3)),
     ];
 
     printables.map!(a => a.stringify).should == [

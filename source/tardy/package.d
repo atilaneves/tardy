@@ -189,6 +189,7 @@ auto vtable(Interface, Instance, Modules...)() {
     import std.traits: Parameters, fullyQualifiedName, PointerTarget, CopyTypeQualifiers;
     import std.algorithm: map;
     import std.range: iota;
+    import std.format: format;
 
     auto ret = new VirtualTable!Interface;
 
@@ -247,11 +248,24 @@ auto vtable(Interface, Instance, Modules...)() {
                         mixin(importMixin!(module_, name));
                 }
 
-                // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
                 // the cast is @trusted because here we know the static type
-                mixin(`ret.`, name, i.text, ` = `,
-                      `(self, `, argsList!(name, i), `) => `,
-                      `(() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!(name, i), `);`);
+                static if(is(Instance == class)) {
+                    static auto instance(T)(T self) @trusted {
+                        return cast(InstancePtr) self;
+                    }
+                } else {
+                    static ref instance(T)(T self) @trusted {
+                        return *(cast(InstancePtr) self);
+                    }
+                }
+
+                // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
+                enum assignMixin = q{
+                    ret.%s%d = (self, %s) pure => instance(self).%s(%s);
+                }.format(name, i, argsList!(name, i), name, argsList!(name, i));
+
+                // pragma(msg, assignMixin);
+                mixin(assignMixin);
             }}
         }
     }

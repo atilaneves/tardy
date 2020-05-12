@@ -255,23 +255,19 @@ auto vtable(Interface, Instance, Modules...)() {
                 }
 
                 // the cast is @trusted because here we know the static type
+                static alwaysByPointer(T)(T self) @trusted {
+                    return cast(InstancePtr) self;
+                }
+
                 static if(is(Instance == class)) {
-                    static instanceByRef(T)(T self) @trusted {
-                        return cast(InstancePtr) self;
-                    }
-
-                    static instanceByPtr(T)(T self) @trusted {
-                        return cast(InstancePtr) self;
-                    }
-
+                    alias instanceByRef = alwaysByPointer;
+                    alias instanceByPtr = alwaysByPointer;
                 } else {
-                    static ref instanceByRef(T)(T self) @trusted {
-                        return *(cast(InstancePtr) self);
+                    static ref instanceByRef(T)(T self) {
+                        return *alwaysByPointer!T(self);
                     }
 
-                    static instanceByPtr(T)(T self) @trusted {
-                        return cast(InstancePtr) self;
-                    }
+                    alias instanceByPtr = alwaysByPointer;
                 }
 
                 // Both of these are essentially:

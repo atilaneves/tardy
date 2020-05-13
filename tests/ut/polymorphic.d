@@ -99,14 +99,14 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 }
 
 
-@("scalar.int")
+@("scalar.pointer.transform.int.standard")
 @safe unittest {
     auto three = Transformer.create!"modules.ufcs.pointer.transform"(3);
     xform(three, 2).should == 6;
     xform(three, 3).should == 9;
 }
 
-@("scalar.modules")
+@("scalar.pointer.transform.int.extra")
 @safe unittest {
     auto four = Transformer.create!(
              "modules.ufcs.pointer.transform",
@@ -121,9 +121,27 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 }
 
 
-@("scalar.double")
+@("scalar.pointer.transform.double")
 @safe unittest {
     auto double_ = Transformer.create!"modules.ufcs.pointer.transform"(3.3);
+    xform(double_, 2).should == 5;
+    xform(double_, 3).should == 6;
+    xform(double_, 4).should == 7;
+}
+
+
+@("scalar.value.transform.double")
+@safe unittest {
+    auto double_ = Transformer.create!"modules.ufcs.value.transform"(3.3);
+    xform(double_, 2).should == 5;
+    xform(double_, 3).should == 6;
+    xform(double_, 4).should == 7;
+}
+
+
+@("scalar.ref.transform.double")
+@safe unittest {
+    auto double_ = Transformer.create!"modules.ufcs.ref_.transform"(3.3);
     xform(double_, 2).should == 5;
     xform(double_, 3).should == 6;
     xform(double_, 4).should == 7;
@@ -239,10 +257,10 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("self.immutable")
 @safe /* pure */ unittest {
-    static interface Interface {
+    static interface Interface0 {
         int fun() @safe pure immutable;
     }
-    alias Poly = Polymorphic!Interface;
+    alias Poly = Polymorphic!Interface0;
 
     static struct Mutable {
         int fun() @safe pure { return 0; }
@@ -269,7 +287,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 @("storageClass")
 @safe /* pure */ unittest {
 
-    static interface Interface {
+    static interface Interface1 {
         void storageClasses(
             int normal,
             return scope int* returnScope,
@@ -279,19 +297,19 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
         );
     }
 
-    alias Poly = Polymorphic!Interface;
+    alias Poly = Polymorphic!Interface1;
 
-    static assert(is(typeof(Poly.storageClasses) == typeof(Interface.storageClasses)));
+    static assert(is(typeof(Poly.storageClasses) == typeof(Interface1.storageClasses)));
 }
 
 
 @("dtor")
 @safe unittest {
 
-    static interface Interface {
+    static interface Interface2 {
         int value() @safe @nogc pure const;
     }
-    alias Poly = Polymorphic!Interface;
+    alias Poly = Polymorphic!Interface2;
 
     static struct Id {
         static int numIds;
@@ -336,10 +354,10 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 @("defaultValues")
 @safe /* pure */ unittest {
 
-    static interface Interface {
+    static interface Interface3 {
         string fun(int i, int j = 1, int k = 2) @safe pure scope const;
     }
-    alias Poly = Polymorphic!Interface;
+    alias Poly = Polymorphic!Interface3;
 
     static struct Struct {
         string fun(int i, int j, int k) @safe pure scope const {
@@ -358,7 +376,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 @("struct.stateless.pure")
 @safe pure unittest {
 
-    static interface Interface {
+    static interface Interface4 {
         import std.traits: FA = FunctionAttribute;
 
         enum CopyConstructorAttrs = FA.safe | FA.pure_;
@@ -366,7 +384,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
         int transform(int) @safe pure const;
     }
-    alias Poly = Polymorphic!Interface;
+    alias Poly = Polymorphic!Interface4;
 
     static struct Struct {
         int transform(int i) @safe pure const { return i * 2; }
@@ -379,13 +397,13 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("struct.stateful.overload")
 @safe pure unittest {
-    static interface Interface {
+    static interface Interface5 {
         import std.traits: FA = FunctionAttribute;
         enum DestructorAttrs = FA.safe | FA.pure_;
         int calc(int) @safe pure const;
         int calc(int, int) @safe pure const;
     }
-    alias Poly = Polymorphic!Interface;
+    alias Poly = Polymorphic!Interface5;
 
     static struct Adder {
         int i;
@@ -405,12 +423,12 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 @("struct.stateful.create")
 @safe pure unittest {
-    static interface Interface {
+    static interface Interface6 {
         import std.traits: FA = FunctionAttribute;
         enum DestructorAttrs = FA.safe | FA.pure_;
         int calc(int) @safe pure const;
     }
-    alias Poly = Polymorphic!Interface;
+    alias Poly = Polymorphic!Interface6;
 
     static struct Adder {
         int i;

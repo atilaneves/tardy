@@ -1,5 +1,4 @@
-Allow UFCS that take 1st argument by ref or even value
-(virtual function must be const in that case) to participate
+Fix using strings as polymorphic objects (and arrays in general)
 
 Policies:
    Storage of instance (heap, insitu/heap, insitu)

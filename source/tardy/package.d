@@ -189,6 +189,7 @@ auto vtable(Interface, Instance, Modules...)() {
     import std.traits: Parameters, fullyQualifiedName, PointerTarget, CopyTypeQualifiers;
     import std.algorithm: map;
     import std.range: iota;
+    import std.format: format;
 
     auto ret = new VirtualTable!Interface;
 
@@ -230,6 +231,12 @@ auto vtable(Interface, Instance, Modules...)() {
             alias Ptr = T*;
     }
 
+    static string assignRecipe(string function_, string vtableEntry, size_t i)() {
+        return q{
+            ret.%s%d = (self, %s) => %s(self).%s(%s);
+        }.format(vtableEntry, i, argsList!(vtableEntry, i), function_, vtableEntry, argsList!(vtableEntry, i));
+    }
+
     static foreach(name; __traits(allMembers, Interface)) {
         static if(is(typeof(__traits(getMember, Interface, name)) == function)) {
             static foreach(i, overload; __traits(getOverloads, Interface, name)) {{
@@ -247,11 +254,38 @@ auto vtable(Interface, Instance, Modules...)() {
                         mixin(importMixin!(module_, name));
                 }
 
-                // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
                 // the cast is @trusted because here we know the static type
-                mixin(`ret.`, name, i.text, ` = `,
-                      `(self, `, argsList!(name, i), `) => `,
-                      `(() @trusted { return cast(InstancePtr) self; }()).`, name, `(`, argsList!(name, i), `);`);
+                static alwaysByPointer(T)(T self) @trusted {
+                    return cast(InstancePtr) self;
+                }
+
+                static if(is(Instance == class)) {
+                    alias instanceByRef = alwaysByPointer;
+                    alias instanceByPtr = alwaysByPointer;
+                } else {
+                    static ref instanceByRef(T)(T self) {
+                        return *alwaysByPointer!T(self);
+                    }
+
+                    alias instanceByPtr = alwaysByPointer;
+                }
+
+                // Both of these are essentially:
+                // e.g. ret.foo = (self, arg0, arg1) => (cast (Instance*) self).foo(arg0, arg1);
+                enum byRefRecipe = assignRecipe!(`instanceByRef`, name, i);
+                enum byPtrRecipe = assignRecipe!(`instanceByPtr`, name, i);
+                // pragma(msg, byRefRecipe);
+                // pragma(msg, byPtrRecipe);
+
+                void implByRef()() { mixin(byRefRecipe); }
+                void implByPtr()() { mixin(byPtrRecipe); }
+
+                static if(is(typeof(&implByPtr!()))) {
+                    mixin(byPtrRecipe);
+                } else static if(is(typeof(&implByRef!()))) {
+                    mixin(byRefRecipe);
+                } else
+                    static assert(false, "Neither of these compiled:" ~ byRefRecipe ~ byPtrRecipe);
             }}
         }
     }

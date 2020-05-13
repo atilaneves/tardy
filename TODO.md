@@ -1,5 +1,3 @@
-Fix using strings as polymorphic objects (and arrays in general)
-
 Policies:
    Storage of instance (heap, insitu/heap, insitu)
    Storage of vtable (heap, insitu/heap, insitu)

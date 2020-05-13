@@ -315,7 +315,7 @@ auto vtable(Interface, Instance, Modules...)() {
 
 
 private void* constructInstance(Instance, A...)(auto ref A args) {
-    import std.traits: Unqual, isCopyable;
+    import std.traits: Unqual, isCopyable, isArray;
     import std.conv: emplace;
 
     static if(is(Instance == class)) {
@@ -333,7 +333,12 @@ private void* constructInstance(Instance, A...)(auto ref A args) {
         static if(__traits(compiles, new Unqual!Instance(args)))
             return new Unqual!Instance(args);
         else static if(isCopyable!Instance) {
-            auto instance = new Unqual!Instance;
+            auto instance = () {
+                static if(isArray!Instance)
+                    return &(new Unqual!Instance[args[0].length])[0];
+                else
+                    return new Unqual!Instance;
+            }();
             *instance = args[0];
             return instance;
         } else static if(__traits(compiles, emplace(new Unqual!Instance, args))) {

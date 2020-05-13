@@ -183,8 +183,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     auto printables = [
         Printable.create!(modules.ufcs.pointer.stringify)(42),
         Printable.create!(modules.ufcs.pointer.stringify)(3.3),
-        // FIXME: can't create `string` with `new`
-        // Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
+        Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
         Printable.create!(modules.ufcs.pointer.stringify)(String("quux")),
         Printable.create!(modules.ufcs.pointer.stringify)(Negative()),
         Printable.create!(modules.ufcs.pointer.stringify)(Point(2, 3)),
@@ -195,6 +194,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     printables.map!(a => a.stringify).array.should == [
         "42",
         "3.3",
+        "foobar",
         "quux",
         "Negative",
         "Point(2, 3)",
@@ -217,8 +217,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     auto printables = [
         Printable.create!(modules.ufcs.pointer.stringify)(42),
         Printable.create!(modules.ufcs.pointer.stringify)(3.3),
-        // FIXME: can't create `string` with `new`
-        // Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
+        Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
         Printable.create!(modules.ufcs.pointer.stringify)(String("quux")),
         Printable.create!(modules.ufcs.pointer.stringify)(Negative()),
         Printable.create!(modules.ufcs.pointer.stringify)(Point(2, 3)),
@@ -227,6 +226,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     printables.map!(a => a.stringify).should == [
         "42",
         "3.3",
+        "foobar",
         "quux",
         "Negative",
         "Point(2, 3)",

@@ -1,7 +1,7 @@
-name "dyno"
+name "tardy"
 description "Runtime polymorphism"
 authors "Atila Neves"
-copyright "Copyright © 2020, atila"
+copyright "Copyright © 2020, Atila Neves"
 license "boost"
 
 targetPath "bin"

@@ -237,6 +237,12 @@ auto vtable(Interface, Instance, Modules...)() {
         }.format(vtableEntry, i, argsList!(vtableEntry, i), function_, vtableEntry, argsList!(vtableEntry, i));
     }
 
+    template alwaysByPointer(InstancePtr) {
+        static impl(T)(T self) @trusted {
+            return cast(InstancePtr) self;
+        }
+    }
+
     static foreach(name; __traits(allMembers, Interface)) {
         static if(is(typeof(__traits(getMember, Interface, name)) == function)) {
             static foreach(i, overload; __traits(getOverloads, Interface, name)) {{
@@ -254,20 +260,15 @@ auto vtable(Interface, Instance, Modules...)() {
                         mixin(importMixin!(module_, name));
                 }
 
-                // the cast is @trusted because here we know the static type
-                static alwaysByPointer(T)(T self) @trusted {
-                    return cast(InstancePtr) self;
-                }
-
                 static if(is(Instance == class)) {
-                    alias instanceByRef = alwaysByPointer;
-                    alias instanceByPtr = alwaysByPointer;
+                    alias instanceByRef = alwaysByPointer!InstancePtr.impl;
+                    alias instanceByPtr = alwaysByPointer!InstancePtr.impl;
                 } else {
                     static ref instanceByRef(T)(T self) {
-                        return *alwaysByPointer!T(self);
+                        return *alwaysByPointer!InstancePtr.impl(self);
                     }
 
-                    alias instanceByPtr = alwaysByPointer;
+                    alias instanceByPtr = alwaysByPointer!InstancePtr.impl;
                 }
 
                 // Both of these are essentially:
@@ -301,7 +302,7 @@ auto vtable(Interface, Instance, Modules...)() {
             import std.traits: isSafe;
 
             // Like above, casting is @trusted because we know the static type
-            auto self = () @trusted { return cast(const(Instance)*) selfUntyped; }();
+            auto self = () @trusted { return cast(Instance*) selfUntyped; }();
             static if(isSafe!(__traits(getMember, Instance, "__dtor")))
                 destroy(*self);
             else

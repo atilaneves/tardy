@@ -20,9 +20,10 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
 
     private immutable(VirtualTable!Interface)* _vtable;
     private void* _instance;
+    private alias _allocator = Allocator.instance;
 
     this(this This, Instance)(auto ref Instance instance) {
-        this(constructInstance!(Instance, Allocator)(instance), vtable!(Interface, Instance, Allocator));
+        this(constructInstance!Instance(_allocator, instance), vtable!(Interface, Instance, Allocator));
     }
 
     this(ref scope const(Polymorphic) other) {
@@ -37,7 +38,7 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
     template create(Modules...) {
         static create(Instance)(Instance instance) {
             return Polymorphic!Interface(
-                constructInstance!(Instance, Allocator)(instance),
+                constructInstance!Instance(_allocator, instance),
                 vtable!(Interface, Instance, Allocator, Modules)
             );
         }
@@ -51,7 +52,7 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
     template create(T, Modules...) {
         static create(A...)(auto ref A args) {
             return Polymorphic(
-                constructInstance!(T, Allocator)(args),
+                constructInstance!T(_allocator, args),
                 vtable!(Interface, T, Allocator, Modules)
             );
         }
@@ -306,7 +307,7 @@ auto vtable(Interface, Instance, Allocator, Modules...)() {
     ret.copyConstructor = (otherPtr) {
         // Like above, casting is @trusted because we know the static type
         auto otherInstancePtr = () @trusted { return cast(const(Instance)*) otherPtr; }();
-        return constructInstance!(Instance, Allocator)(*otherInstancePtr);
+        return constructInstance!Instance(Allocator.instance, *otherInstancePtr);
     };
 
     static destruct(const(void)* selfUntyped) {
@@ -335,7 +336,7 @@ auto vtable(Interface, Instance, Allocator, Modules...)() {
 }
 
 
-private void* constructInstance(Instance, Allocator, A...)(auto ref A args) {
+private void* constructInstance(Instance, Allocator, A...)(ref Allocator allocator, auto ref A args) {
     import std.traits: Unqual, isCopyable, isArray;
     import std.conv: emplace;
     import std.experimental.allocator: make;
@@ -353,14 +354,14 @@ private void* constructInstance(Instance, Allocator, A...)(auto ref A args) {
 
     } else {
         static if(__traits(compiles, new Unqual!Instance(args))) {
-            auto ptr = () @trusted /* FIXME */ { return Allocator.instance.make!Instance(args); }();
+            auto ptr = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
             return ptr;
         } else static if(isCopyable!Instance) {
             auto instance = () {
                 static if(isArray!Instance)
                     return &(new Unqual!Instance[args[0].length])[0];
                 else
-                    return Allocator.instance.make!Instance;
+                    return allocator.make!Instance;
             }();
             *instance = args[0];
             return instance;

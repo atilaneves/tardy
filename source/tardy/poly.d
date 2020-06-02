@@ -15,7 +15,9 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
 {
     import std.experimental.allocator: stateSize;
 
-    static assert(stateSize!InstanceAllocator == 0,
+    enum instanceAllocatorHasState = stateSize!InstanceAllocator != 0;
+
+    static assert(!instanceAllocatorHasState,
                   "Allocators with state are not yet supported");
 
     private alias VTable = VirtualTable!(Interface, InstanceAllocator);
@@ -29,7 +31,7 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
 
     this(ref scope const(Polymorphic) other) {
         _vtable = other._vtable;
-        _instance = other._vtable.copyConstructor(other);
+        _instance = other._vtable.copyConstructor(other, _allocator);
     }
 
     /**
@@ -153,7 +155,8 @@ struct VirtualTable(Interface, InstanceAllocator) if(is(Interface == interface))
 
     // The destructor and copy constructor have to be in the virtual table
     // since the only point we know the static type is when constructing.
-    alias CopyConstructorBase = void* function(scope ref const Polymorphic!(Interface, InstanceAllocator) other);
+    alias CopyConstructorBase = void* function(scope ref const Polymorphic!(Interface, InstanceAllocator) other,
+                                               ref typeof(InstanceAllocator.instance) allocator);
     alias DestructorBase = void function(ref Polymorphic!(Interface, InstanceAllocator) self);
 
     alias CopyConstructor = std.traits.SetFunctionAttributes!(
@@ -305,10 +308,10 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
         }
     }
 
-    ret.copyConstructor = (ref const other) {
+    ret.copyConstructor = (ref const other, ref allocator) {
         // Like above, casting is @trusted because we know the static type
         auto otherInstancePtr = () @trusted { return cast(const(Instance)*) other._instance; }();
-        return constructInstance!Instance(other._allocator, *otherInstancePtr);
+        return constructInstance!Instance(allocator, *otherInstancePtr);
     };
 
     ret.destructor = (ref self) {

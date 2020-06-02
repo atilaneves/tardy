@@ -23,3 +23,21 @@ configuration "unittest" {
 
     versions "unitUnthreaded"
 }
+
+
+configuration "asan" {
+    targetType "executable"
+    targetName "asan"
+
+    mainSourceFile "tests/main.d"
+    sourcePaths "tests"
+    importPaths "tests"
+
+    # -dip1008 causes asan issues with malloc
+    dflags "-preview=dip25" "-preview=dip1000"
+    dflags "-fsanitize=address" platform="ldc"
+
+    dependency "unit-threaded" version="*"
+
+    versions "unitUnthreaded"
+}

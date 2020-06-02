@@ -10,20 +10,21 @@ alias DefaultAllocator = from!"std.experimental.allocator.gc_allocator".GCAlloca
    A wrapper that acts like a subclass of Interface, dispatching
    at runtime to different instance instances.
  */
-struct Polymorphic(Interface, Allocator = DefaultAllocator)
+struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
     if(is(Interface == interface))
 {
     import std.experimental.allocator: stateSize;
 
-    static assert(stateSize!Allocator == 0,
+    static assert(stateSize!InstanceAllocator == 0,
                   "Allocators with state are not yet supported");
 
-    private immutable(VirtualTable!Interface)* _vtable;
+    private alias VTable = VirtualTable!(Interface, InstanceAllocator);
+    private immutable(VTable)* _vtable;
     private void* _instance;
-    private alias _allocator = Allocator.instance;
+    private alias _allocator = InstanceAllocator.instance;
 
     this(this This, Instance)(auto ref Instance instance) {
-        this(constructInstance!Instance(_allocator, instance), vtable!(Interface, Instance, Allocator));
+        this(constructInstance!Instance(_allocator, instance), vtable!(Interface, Instance, InstanceAllocator));
     }
 
     this(ref scope const(Polymorphic) other) {
@@ -39,7 +40,7 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
         static create(Instance)(Instance instance) {
             return Polymorphic!Interface(
                 constructInstance!Instance(_allocator, instance),
-                vtable!(Interface, Instance, Allocator, Modules)
+                vtable!(Interface, Instance, InstanceAllocator, Modules)
             );
         }
     }
@@ -53,12 +54,12 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
         static create(A...)(auto ref A args) {
             return Polymorphic(
                 constructInstance!T(_allocator, args),
-                vtable!(Interface, T, Allocator, Modules)
+                vtable!(Interface, T, InstanceAllocator, Modules)
             );
         }
     }
 
-    private this(this This)(void* instance, immutable(VirtualTable!Interface)* vtable) {
+    private this(this This)(void* instance, immutable(VTable)* vtable) {
         // the cast is because of type qualifiers, and is safe because this constructor
         // is private
         _instance = () @trusted { return cast(typeof(_instance)) instance; }();
@@ -69,7 +70,7 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
         in(_vtable !is null)
         do
     {
-        _vtable.destructor(_instance);
+        _vtable.destructor(this);
     }
 
     // From here we declare one member function per declaration in Interface, with
@@ -128,7 +129,7 @@ private string argsCall(size_t length)
    Has one function pointer slot for every function declared
    in the interface type.
  */
-struct VirtualTable(Interface) if(is(Interface == interface)) {
+struct VirtualTable(Interface, InstanceAllocator) if(is(Interface == interface)) {
     import tardy.refraction: vtableEntryRecipe;
     import std.traits: FA = FunctionAttribute;
     import std.conv: text;
@@ -153,7 +154,7 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
     // The destructor and copy constructor have to be in the virtual table
     // since the only point we know the static type is when constructing.
     alias CopyConstructorBase = void* function(scope const(void)* otherInstancePtr);
-    alias DestructorBase = void function(scope const(void)* self);
+    alias DestructorBase = void function(ref Polymorphic!(Interface, InstanceAllocator) self);
 
     alias CopyConstructor = std.traits.SetFunctionAttributes!(
         CopyConstructorBase,
@@ -195,7 +196,7 @@ private from!"std.traits".FunctionAttribute functionAttributesFromInterface
    This function assigns every slot in VirtualTable!Interface with
    a function pointer that delegates to the Instance type.
  */
-auto vtable(Interface, Instance, Allocator, Modules...)() {
+auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
 
     import std.conv: text;
     import std.string: join;
@@ -204,7 +205,7 @@ auto vtable(Interface, Instance, Allocator, Modules...)() {
     import std.range: iota;
     import std.format: format;
 
-    auto ret = new VirtualTable!Interface;
+    auto ret = new VirtualTable!(Interface, InstanceAllocator);
 
     // 0 -> arg0, 1 -> arg1, ...
     static string argName(size_t i) { return `arg` ~ i.text; }
@@ -307,36 +308,20 @@ auto vtable(Interface, Instance, Allocator, Modules...)() {
     ret.copyConstructor = (otherPtr) {
         // Like above, casting is @trusted because we know the static type
         auto otherInstancePtr = () @trusted { return cast(const(Instance)*) otherPtr; }();
-        return constructInstance!Instance(Allocator.instance, *otherInstancePtr);
+        return constructInstance!Instance(InstanceAllocator.instance, *otherInstancePtr);
     };
 
-    static destruct(const(void)* selfUntyped) {
-        static if(__traits(hasMember, Instance, "__dtor")) {
-            import std.traits: isSafe;
-
-            // Like above, casting is @trusted because we know the static type
-            auto self = () @trusted { return cast(Instance*) selfUntyped; }();
-            static if(isSafe!(__traits(getMember, Instance, "__dtor")))
-                destroy(*self);
-            else
-                static assert(false, "Cannot call unsafe destructor from " ~ T.stringof);
-        }
-    }
-
-    static free(const(void)* ptr) @trusted /* depends on the allocator actually */ {
-        Allocator.instance.deallocate(cast(void[]) ptr[0 .. Instance.sizeof]);
-    }
-
-    ret.destructor = (self_) {
-        destruct(self_);
-        free(self_);
+    ret.destructor = (ref self) {
+        import std.experimental.allocator: dispose;
+        auto instance = () @trusted { return cast(Instance*) self._instance; }();
+        () @trusted /* FIXME */ { self._allocator.dispose(instance); }();
     };
 
     return ret;
 }
 
 
-private void* constructInstance(Instance, Allocator, A...)(ref Allocator allocator, auto ref A args) {
+private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceAllocator allocator, auto ref A args) {
     import std.traits: Unqual, isCopyable, isArray;
     import std.conv: emplace;
     import std.experimental.allocator: make;

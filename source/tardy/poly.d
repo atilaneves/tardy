@@ -309,12 +309,8 @@ auto vtable(Interface, Instance, Allocator, Modules...)() {
         return constructInstance!(Instance, Allocator)(*otherInstancePtr);
     };
 
-    static free(const(void)* ptr) @trusted /* depends on the allocator actually */ {
-        Allocator.instance.deallocate(cast(void[]) ptr[0 .. Instance.sizeof]);
-    }
-
-    static if(__traits(hasMember, Instance, "__dtor")) {
-        ret.destructor = (selfUntyped) {
+    static destruct(const(void)* selfUntyped) {
+        static if(__traits(hasMember, Instance, "__dtor")) {
             import std.traits: isSafe;
 
             // Like above, casting is @trusted because we know the static type
@@ -323,15 +319,17 @@ auto vtable(Interface, Instance, Allocator, Modules...)() {
                 destroy(*self);
             else
                 static assert(false, "Cannot call unsafe destructor from " ~ T.stringof);
+        }
+    }
 
-//            free(selfUntyped);
-        };
-    } else
-        //ret.destructor = (selfUntyped) { free(selfUntyped); };
-        ret.destructor = (selfUntyped) {
-            auto self = () @trusted { return cast(Instance*) selfUntyped; }();
-            free(self);
-        };
+    static free(const(void)* ptr) @trusted /* depends on the allocator actually */ {
+        Allocator.instance.deallocate(cast(void[]) ptr[0 .. Instance.sizeof]);
+    }
+
+    ret.destructor = (self_) {
+        destruct(self_);
+        free(self_);
+    };
 
     return ret;
 }

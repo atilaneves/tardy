@@ -30,10 +30,10 @@ private struct Multiplier {
 }
 
 
-@("mallocator.multiplier")
+@("mallocator.create.multiplier")
 @safe pure unittest {
-    const multiplier = Transformer(Multiplier(3));
+    const multiplier = Transformer.create!Multiplier(3);
     xform(multiplier, 2);
-    // xform(multiplier, 2).should == 6;
-    // xform(multiplier, 3).should == 9;
+    xform(multiplier, 2).should == 6;
+    xform(multiplier, 3).should == 9;
 }

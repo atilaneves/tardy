@@ -22,7 +22,7 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
     private void* _instance;
 
     this(this This, Instance)(auto ref Instance instance) {
-        this(constructInstance!Instance(instance), vtable!(Interface, Instance));
+        this(constructInstance!(Instance, Allocator)(instance), vtable!(Interface, Instance, Allocator));
     }
 
     this(ref scope const(Polymorphic) other) {
@@ -37,22 +37,22 @@ struct Polymorphic(Interface, Allocator = DefaultAllocator)
     template create(Modules...) {
         static create(Instance)(Instance instance) {
             return Polymorphic!Interface(
-                constructInstance!Instance(instance),
-                vtable!(Interface, Instance, Modules)
+                constructInstance!(Instance, Allocator)(instance),
+                vtable!(Interface, Instance, Allocator, Modules)
             );
         }
     }
+
     /**
        This factory function makes it possible to forward arguments to
        the T's constructor instead of taking one by value and to pass
        in modules to look for UFCS functions for the instance.
      */
-
     template create(T, Modules...) {
         static create(A...)(auto ref A args) {
-            return Polymorphic!Interface(
-                constructInstance!T(args),
-                vtable!(Interface, T, Modules)
+            return Polymorphic(
+                constructInstance!(T, Allocator)(args),
+                vtable!(Interface, T, Allocator, Modules)
             );
         }
     }
@@ -194,7 +194,7 @@ private from!"std.traits".FunctionAttribute functionAttributesFromInterface
    This function assigns every slot in VirtualTable!Interface with
    a function pointer that delegates to the Instance type.
  */
-auto vtable(Interface, Instance, Modules...)() {
+auto vtable(Interface, Instance, Allocator, Modules...)() {
 
     import std.conv: text;
     import std.string: join;
@@ -306,8 +306,12 @@ auto vtable(Interface, Instance, Modules...)() {
     ret.copyConstructor = (otherPtr) {
         // Like above, casting is @trusted because we know the static type
         auto otherInstancePtr = () @trusted { return cast(const(Instance)*) otherPtr; }();
-        return constructInstance!Instance(*otherInstancePtr);
+        return constructInstance!(Instance, Allocator)(*otherInstancePtr);
     };
+
+    static free(const(void)* ptr) @trusted /* depends on the allocator actually */ {
+        Allocator.instance.deallocate(cast(void[]) ptr[0 .. Instance.sizeof]);
+    }
 
     static if(__traits(hasMember, Instance, "__dtor")) {
         ret.destructor = (selfUntyped) {
@@ -319,17 +323,24 @@ auto vtable(Interface, Instance, Modules...)() {
                 destroy(*self);
             else
                 static assert(false, "Cannot call unsafe destructor from " ~ T.stringof);
+
+//            free(selfUntyped);
         };
     } else
-        ret.destructor = (selfUntyped) {};
+        //ret.destructor = (selfUntyped) { free(selfUntyped); };
+        ret.destructor = (selfUntyped) {
+            auto self = () @trusted { return cast(Instance*) selfUntyped; }();
+            free(self);
+        };
 
     return ret;
 }
 
 
-private void* constructInstance(Instance, A...)(auto ref A args) {
+private void* constructInstance(Instance, Allocator, A...)(auto ref A args) {
     import std.traits: Unqual, isCopyable, isArray;
     import std.conv: emplace;
+    import std.experimental.allocator: make;
 
     static if(is(Instance == class)) {
         static if(__traits(compiles, emplace(cast(Unqual!Instance) null, args))) {
@@ -343,14 +354,15 @@ private void* constructInstance(Instance, A...)(auto ref A args) {
         }
 
     } else {
-        static if(__traits(compiles, new Unqual!Instance(args)))
-            return new Unqual!Instance(args);
-        else static if(isCopyable!Instance) {
+        static if(__traits(compiles, new Unqual!Instance(args))) {
+            auto ptr = () @trusted /* FIXME */ { return Allocator.instance.make!Instance(args); }();
+            return ptr;
+        } else static if(isCopyable!Instance) {
             auto instance = () {
                 static if(isArray!Instance)
                     return &(new Unqual!Instance[args[0].length])[0];
                 else
-                    return new Unqual!Instance;
+                    return Allocator.instance.make!Instance;
             }();
             *instance = args[0];
             return instance;

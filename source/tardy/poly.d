@@ -1,11 +1,22 @@
 module tardy.poly;
 
 
+import tardy.from;
+
+
+alias DefaultAllocator = from!"std.experimental.allocator.gc_allocator".GCAllocator;
+
 /**
    A wrapper that acts like a subclass of Interface, dispatching
    at runtime to different instance instances.
  */
-struct Polymorphic(Interface) if(is(Interface == interface)){
+struct Polymorphic(Interface, Allocator = DefaultAllocator)
+    if(is(Interface == interface))
+{
+    import std.experimental.allocator: stateSize;
+
+    static assert(stateSize!Allocator == 0,
+                  "Allocators with state are not yet supported");
 
     private immutable(VirtualTable!Interface)* _vtable;
     private void* _instance;
@@ -161,11 +172,12 @@ struct VirtualTable(Interface) if(is(Interface == interface)) {
     // The destructor has to be in the virtual table since only
     // Polymorphic's constructor knows what the static type is.
     Destructor destructor;
-
 }
 
 
-private auto functionAttributesFromInterface(Interface, string name)() {
+private from!"std.traits".FunctionAttribute functionAttributesFromInterface
+    (Interface, string name)()
+{
     import std.traits: FA = FunctionAttribute;
     static if(__traits(hasMember, Interface, name)) {
         static assert(is(typeof(__traits(getMember, Interface, name)) == FA));

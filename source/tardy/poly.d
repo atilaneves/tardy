@@ -29,7 +29,7 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
 
     this(ref scope const(Polymorphic) other) {
         _vtable = other._vtable;
-        _instance = other._vtable.copyConstructor(other._instance);
+        _instance = other._vtable.copyConstructor(other);
     }
 
     /**
@@ -153,7 +153,7 @@ struct VirtualTable(Interface, InstanceAllocator) if(is(Interface == interface))
 
     // The destructor and copy constructor have to be in the virtual table
     // since the only point we know the static type is when constructing.
-    alias CopyConstructorBase = void* function(scope const(void)* otherInstancePtr);
+    alias CopyConstructorBase = void* function(scope ref const Polymorphic!(Interface, InstanceAllocator) other);
     alias DestructorBase = void function(ref Polymorphic!(Interface, InstanceAllocator) self);
 
     alias CopyConstructor = std.traits.SetFunctionAttributes!(
@@ -305,10 +305,10 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
         }
     }
 
-    ret.copyConstructor = (otherPtr) {
+    ret.copyConstructor = (ref const other) {
         // Like above, casting is @trusted because we know the static type
-        auto otherInstancePtr = () @trusted { return cast(const(Instance)*) otherPtr; }();
-        return constructInstance!Instance(InstanceAllocator.instance, *otherInstancePtr);
+        auto otherInstancePtr = () @trusted { return cast(const(Instance)*) other._instance; }();
+        return constructInstance!Instance(other._allocator, *otherInstancePtr);
     };
 
     ret.destructor = (ref self) {

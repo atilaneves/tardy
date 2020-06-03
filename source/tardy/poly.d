@@ -362,28 +362,25 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
 
 private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceAllocator allocator, auto ref A args) @safe {
     import std.traits: Unqual, isCopyable, isArray;
-    import std.conv: emplace;
     import std.range.primitives: ElementEncodingType;
     import std.experimental.allocator: make, makeArray;
 
     static if(is(Instance == class)) {
 
-        static if(__traits(compiles, emplace(Unqual!Instance.init, args))) {
+        static if(__traits(compiles, () @trusted { allocator.make!Instance(args); } )) {
             auto instance = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
             return () @trusted { return cast(void*) instance; }();
         } else {
-            auto instance = () @trusted { return allocator.make!Instance; }();
+            auto instance = () @trusted /* FIXME */ { return allocator.make!Instance; }();
             return () @trusted { return cast(void*) instance; }();
         }
 
     } else {
         static if(__traits(compiles, new Unqual!Instance(args)))
             return () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
-        else static if(__traits(compiles, emplace(new Unqual!Instance, args))) {
-            auto instance = allocator.make!Instance;
-            emplace(instance, args);
-            return instance;
-        } else static if(isCopyable!Instance && args.length == 1 && is(Unqual!(A[0]) == Unqual!Instance)) {
+        else static if(__traits(compiles, allocator.make!Instance(args)))
+            return allocator.make!Instance(args);
+        else static if(isCopyable!Instance && args.length == 1 && is(Unqual!(A[0]) == Unqual!Instance)) {
 
             static if(isArray!Instance) {
                 static assert(args.length == 1);

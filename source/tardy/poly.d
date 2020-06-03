@@ -57,7 +57,7 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
         static create(A...)(auto ref A args) {
             return Polymorphic(
                 constructInstance!T(_allocator, args),
-                vtable!(Interface, T, InstanceAllocator, Modules)
+                vtable!(Interface, T, InstanceAllocator, Modules),
             );
         }
     }
@@ -192,6 +192,8 @@ private from!"std.traits".FunctionAttribute functionAttributesFromInterface
         return FA.safe;
 }
 
+// 0 -> arg0, 1 -> arg1, ...
+private string argName(size_t i) { import std.conv: text; return `arg` ~ i.text; }
 
 /**
    Creates a virtual table for the given Instance that implements
@@ -205,16 +207,16 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
     import std.conv: text;
     import std.string: join;
     import std.traits: Parameters, fullyQualifiedName, PointerTarget, CopyTypeQualifiers;
-    import std.algorithm.iteration: map;
-    import std.range: iota;
     import std.format: format;
 
     auto ret = new VirtualTable!(Interface, InstanceAllocator);
 
-    // 0 -> arg0, 1 -> arg1, ...
-    static string argName(size_t i) { return `arg` ~ i.text; }
     // func -> arg0, arg1, ...
     static string argsList(string name, size_t i)() {
+        import std.algorithm.iteration: map;
+        import std.range: iota;
+        import std.array: join;
+
         alias vtableEntry = __traits(getOverloads, Interface, name)[i];
         return Parameters!vtableEntry
             .length
@@ -249,9 +251,10 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
     }
 
     static string assignRecipe(string function_, string vtableEntry, size_t i)() {
+        enum args = argsList!(vtableEntry, i);
         return q{
             ret.%s%d = (self, %s) => %s(self).%s(%s);
-        }.format(vtableEntry, i, argsList!(vtableEntry, i), function_, vtableEntry, argsList!(vtableEntry, i));
+        }.format(vtableEntry, i, args, function_, vtableEntry, args);
     }
 
     template alwaysByPointer(InstancePtr) {
@@ -302,16 +305,24 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
                     mixin(byPtrRecipe);
                 } else static if(is(typeof(&implByRef!()))) {
                     mixin(byRefRecipe);
-                } else
+                } else {
                     static assert(false, "Neither of these compiled:" ~ byRefRecipe ~ byPtrRecipe);
+                }
             }}
         }
     }
 
+
     ret.copyConstructor = (ref const other, ref allocator) {
-        // Like above, casting is @trusted because we know the static type
-        auto otherInstancePtr = () @trusted { return cast(const(Instance)*) other._instance; }();
-        return constructInstance!Instance(allocator, *otherInstancePtr);
+        import std.traits: isCopyable;
+        static if(isCopyable!Instance) {
+            // Like above, casting is @trusted because we know the static type
+            auto otherInstancePtr = () @trusted { return cast(const(Instance)*) other._instance; }();
+            return constructInstance!Instance(allocator, *otherInstancePtr);
+        } else {
+            import std.traits: fullyQualifiedName;
+            throw new Exception("Cannot copy an instance of " ~ fullyQualifiedName!Instance);
+        }
     };
 
     ret.destructor = (ref self) {
@@ -358,8 +369,9 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
             *instance = args[0];
             return instance;
         } else {
-            auto instance = new Unqual!Instance;
-            return instance;
+            import std.traits: fullyQualifiedName;
+            static assert(false,
+                          "Cannot build `" ~ fullyQualifiedName!Instance ~ " (probably not copiable)");
         }
     }
 }

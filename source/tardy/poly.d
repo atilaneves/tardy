@@ -307,7 +307,6 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
                 } else static if(is(typeof(&implByRef!()))) {
                     mixin(byRefRecipe);
                 } else {
-                    mixin(byRefRecipe);
                     static assert(false, "Neither of these compiled:" ~ byRefRecipe ~ byPtrRecipe);
                 }
             }}

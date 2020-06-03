@@ -42,9 +42,9 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
      */
     template create(Modules...) {
         static create(Instance)(Instance instance) {
-            return Polymorphic!Interface(
+            return Polymorphic(
                 constructInstance!Instance(_allocator, instance),
-                vtable!(Interface, Instance, InstanceAllocator, Modules)
+                vtable!(Interface, Instance, InstanceAllocator, Modules),
             );
         }
     }
@@ -307,6 +307,7 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
                 } else static if(is(typeof(&implByRef!()))) {
                     mixin(byRefRecipe);
                 } else {
+                    mixin(byRefRecipe);
                     static assert(false, "Neither of these compiled:" ~ byRefRecipe ~ byPtrRecipe);
                 }
             }}
@@ -316,6 +317,7 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
 
     ret.copyConstructor = (ref const other, ref allocator) {
         import std.traits: isCopyable;
+
         static if(isCopyable!Instance) {
 
             static if(is(Instance == class))
@@ -324,7 +326,7 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
                 alias InstancePtr = Instance*;
 
             // Like above, casting is @trusted because we know the static type
-            auto otherInstancePtr = () @trusted { return cast(const InstancePtr) other._instance; }();
+            auto otherInstancePtr = () @trusted { return cast(InstancePtr) other._instance; }();
 
             static if(is(Instance == class))
                 auto otherLvalue = otherInstancePtr;
@@ -344,14 +346,6 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
         import std.range.primitives: ElementEncodingType;
 
         auto instance = () @trusted { return cast(Instance*) self._instance; }();
-
-        // FIXME - probably the copy constructor isn't doing the right thing for arrays
-        // // When it's array we allocate twice - one for a pointer to the array,
-        // // then again for the array itself.
-        // static if(isArray!Instance)
-        //     () @trusted /* FIXME */ {
-        //         self._allocator.dispose(cast(Unqual!(ElementEncodingType!Instance)[]) *instance);
-        // }();
 
         () @trusted /* FIXME */ { self._allocator.dispose(instance); }();
     };
@@ -376,19 +370,19 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
         }
 
     } else {
-        static if(__traits(compiles, new Unqual!Instance(args)))
+
+        enum canCopy =
+            (isArray!Instance && is(typeof(allocator.makeArray!(ElementEncodingType!Instance)(args[0]))))
+            || (!isArray!Instance && is(Unqual!Instance == Unqual!(A[0])));
+
+        static if(__traits(compiles, new Unqual!Instance(args))) {
             return () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
-        else static if(__traits(compiles, allocator.make!Instance(args)))
+        } else static if(__traits(compiles, allocator.make!Instance(args))) {
             return allocator.make!Instance(args);
-        else static if(isCopyable!Instance && args.length == 1 && is(Unqual!(A[0]) == Unqual!Instance)) {
+        } else static if(isCopyable!Instance && args.length == 1 && canCopy) {
 
             static if(isArray!Instance) {
-                static assert(args.length == 1);
-                auto instance = allocator.make!Instance;
-
-                *instance = allocator.makeArray!(ElementEncodingType!Instance)(args[0]);
-
-                return instance;
+                return allocator.make!(Instance)(args[0]);
             } else {
                 auto instance = allocator.make!Instance;
                 *instance = args[0];
@@ -397,7 +391,7 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
         } else {
             import std.traits: fullyQualifiedName;
             static assert(false,
-                          "Cannot build `" ~ fullyQualifiedName!Instance ~ " (probably not copiable)");
+                          "Cannot build `" ~ fullyQualifiedName!Instance ~ " from " ~ A.stringof);
         }
     }
 }

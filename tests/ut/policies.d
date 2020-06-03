@@ -79,3 +79,11 @@ private class ThriceClass {
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
 }
+
+
+@("mallocator.array.copy")
+@safe pure unittest {
+    const multiplier = Transformer.create!"modules.ufcs.value.transform"([1, 2, 3]);
+    xform(multiplier, 2).should == 5;
+    xform(multiplier, 3).should == 6;
+}

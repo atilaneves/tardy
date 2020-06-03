@@ -13,6 +13,8 @@ int transform(string s, int i) @safe pure {
     return (cast(int) s.length) + i;
 }
 
-int transform(int[] a, int i) @safe pure {
+int transform(const int[] a, int i) @safe @nogc pure {
+    import std.traits;
+    static assert(isCopyable!(typeof(a)));
     return (cast(int) a.length) + i;
 }

@@ -167,6 +167,30 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 
 
+@("array.foo")
+@safe unittest {
+    static import modules.ufcs.pointer.stringify;
+    import modules.types: Negative, Point, String;
+    import std.algorithm.iteration: map;
+    import std.array: array;
+
+    static interface IPrintable {
+        string stringify() @safe const;
+    }
+
+    alias Printable = Polymorphic!IPrintable;
+
+    auto printables = [
+        Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
+    ];
+
+    printables.map!(a => a.stringify).array.should == [
+        "foobar",
+    ];
+}
+
+
+
 @("array.safe")
 @safe unittest {
     static import modules.ufcs.pointer.stringify;

@@ -327,7 +327,19 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
 
     ret.destructor = (ref self) {
         import std.experimental.allocator: dispose;
+        import std.traits: isArray, Unqual;
+        import std.range.primitives: ElementEncodingType;
+
         auto instance = () @trusted { return cast(Instance*) self._instance; }();
+
+        // FIXME - probably the copy constructor isn't doing the right thing for arrays
+        // // When it's array we allocate twice - one for a pointer to the array,
+        // // then again for the array itself.
+        // static if(isArray!Instance)
+        //     () @trusted /* FIXME */ {
+        //         self._allocator.dispose(cast(Unqual!(ElementEncodingType!Instance)[]) *instance);
+        // }();
+
         () @trusted /* FIXME */ { self._allocator.dispose(instance); }();
     };
 
@@ -338,7 +350,8 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
 private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceAllocator allocator, auto ref A args) {
     import std.traits: Unqual, isCopyable, isArray;
     import std.conv: emplace;
-    import std.experimental.allocator: make;
+    import std.range.primitives: ElementEncodingType;
+    import std.experimental.allocator: make, makeArray;
 
     static if(is(Instance == class)) {
         static if(__traits(compiles, emplace(cast(Unqual!Instance) null, args))) {
@@ -360,14 +373,18 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
             return instance;
         } else static if(isCopyable!Instance && args.length == 1 && is(Unqual!(A[0]) == Unqual!Instance)) {
 
-            auto instance = () {
-                static if(isArray!Instance)
-                    return &(new Unqual!Instance[args[0].length])[0];
-                else
-                    return allocator.make!Instance;
-            }();
-            *instance = args[0];
-            return instance;
+            static if(isArray!Instance) {
+                static assert(args.length == 1);
+                auto instance = allocator.make!Instance;
+
+                *instance = allocator.makeArray!(ElementEncodingType!Instance)(args[0]);
+
+                return instance;
+            } else {
+                auto instance = allocator.make!Instance;
+                *instance = args[0];
+                return instance;
+            }
         } else {
             import std.traits: fullyQualifiedName;
             static assert(false,

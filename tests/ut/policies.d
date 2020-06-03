@@ -20,27 +20,42 @@ private int xform(in Transformer t, int i) @safe @nogc pure {
     return t.transform(i);
 }
 
-private struct Twice {
-    int transform(int i) @safe @nogc pure const { return i * 2; }
-}
-
-private struct Multiplier {
+private struct MultiplierStruct {
     int i;
     int transform(int j) @safe @nogc pure const { return i * j; }
 }
 
+private class MultiplierClass {
+    int i;
+    this(int i) @safe pure { this.i = i; }
+    this(const MultiplierClass other) @safe pure { this.i = other.i; }
+    int transform(int j) @safe @nogc pure const { return i * j; }
+    override string toString() @safe pure const {
+        import std.conv: text;
+        return text(`MultiplierClass(`, i, `)`);
+    }
+}
 
-@("mallocator.create.multiplier")
+
+@("mallocator.struct.create")
 @safe pure unittest {
-    const multiplier = Transformer.create!Multiplier(3);
+    const multiplier = Transformer.create!MultiplierStruct(3);
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
 }
 
 
-@("mallocator.copy.multiplier")
+@("mallocator.struct.copy")
 @safe pure unittest {
-    const multiplier = Transformer(Multiplier(3));
+    const multiplier = Transformer(MultiplierStruct(3));
+    xform(multiplier, 2).should == 6;
+    xform(multiplier, 3).should == 9;
+}
+
+
+@("mallocator.class.copy")
+@safe pure unittest {
+    const multiplier = Transformer(new MultiplierClass(3));
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
 }

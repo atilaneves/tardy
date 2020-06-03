@@ -27,7 +27,8 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
     private alias _allocator = InstanceAllocator.instance;
 
     this(this This, Instance)(auto ref Instance instance) {
-        this(constructInstance!Instance(_allocator, instance), vtable!(Interface, Instance, InstanceAllocator));
+        this(constructInstance!Instance(_allocator, instance),
+             vtable!(Interface, Instance, InstanceAllocator));
     }
 
     this(ref scope const(Polymorphic) other) {
@@ -316,9 +317,21 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
     ret.copyConstructor = (ref const other, ref allocator) {
         import std.traits: isCopyable;
         static if(isCopyable!Instance) {
+
+            static if(is(Instance == class))
+                alias InstancePtr = Instance;
+            else
+                alias InstancePtr = Instance*;
+
             // Like above, casting is @trusted because we know the static type
-            auto otherInstancePtr = () @trusted { return cast(const(Instance)*) other._instance; }();
-            return constructInstance!Instance(allocator, *otherInstancePtr);
+            auto otherInstancePtr = () @trusted { return cast(const InstancePtr) other._instance; }();
+
+            static if(is(Instance == class))
+                auto otherLvalue = otherInstancePtr;
+            else
+                auto otherLvalue = *otherInstancePtr;
+
+            return constructInstance!Instance(allocator, otherLvalue);
         } else {
             import std.traits: fullyQualifiedName;
             throw new Exception("Cannot copy an instance of " ~ fullyQualifiedName!Instance);
@@ -347,18 +360,17 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
 }
 
 
-private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceAllocator allocator, auto ref A args) {
+private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceAllocator allocator, auto ref A args) @safe {
     import std.traits: Unqual, isCopyable, isArray;
     import std.conv: emplace;
     import std.range.primitives: ElementEncodingType;
     import std.experimental.allocator: make, makeArray;
 
     static if(is(Instance == class)) {
-        static if(__traits(compiles, emplace(cast(Unqual!Instance) null, args))) {
-            auto buffer = new void[__traits(classInstanceSize, Instance)];
-            auto newInstance = () @trusted { return cast(Unqual!Instance) buffer.ptr; }();
-            emplace(newInstance, args);
-            return &buffer[0];
+
+        static if(__traits(compiles, emplace(Unqual!Instance.init, args))) {
+            auto instance = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
+            return () @trusted { return cast(void*) instance; }();
         } else {
             auto newInstance = new Unqual!Instance;
             return () @trusted { return cast(void*) newInstance; }();

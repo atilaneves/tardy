@@ -190,7 +190,6 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 }
 
 
-
 @("array.safe")
 @safe unittest {
     static import modules.ufcs.pointer.stringify;

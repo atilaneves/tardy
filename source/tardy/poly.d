@@ -205,7 +205,7 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
     import std.conv: text;
     import std.string: join;
     import std.traits: Parameters, fullyQualifiedName, PointerTarget, CopyTypeQualifiers;
-    import std.algorithm: map;
+    import std.algorithm.iteration: map;
     import std.range: iota;
     import std.format: format;
 
@@ -215,8 +215,7 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
     static string argName(size_t i) { return `arg` ~ i.text; }
     // func -> arg0, arg1, ...
     static string argsList(string name, size_t i)() {
-        import std.conv: text;
-        alias vtableEntry = mixin(text(`__traits(getOverloads, Interface, "`, name, `")[`, i, `]`));
+        alias vtableEntry = __traits(getOverloads, Interface, name)[i];
         return Parameters!vtableEntry
             .length
             .iota

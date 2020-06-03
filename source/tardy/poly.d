@@ -21,6 +21,7 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
                   "Allocators with state are not yet supported");
 
     private alias VTable = VirtualTable!(Interface, InstanceAllocator);
+
     private immutable(VTable)* _vtable;
     private void* _instance;
     private alias _allocator = InstanceAllocator.instance;
@@ -344,7 +345,12 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
         static if(__traits(compiles, new Unqual!Instance(args))) {
             auto ptr = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
             return ptr;
-        } else static if(isCopyable!Instance) {
+        } else static if(__traits(compiles, emplace(new Unqual!Instance, args))) {
+            auto instance = allocator.make!Instance;
+            emplace(instance, args);
+            return instance;
+        } else static if(isCopyable!Instance && args.length == 1 && is(Unqual!(A[0]) == Unqual!Instance)) {
+
             auto instance = () {
                 static if(isArray!Instance)
                     return &(new Unqual!Instance[args[0].length])[0];
@@ -352,10 +358,6 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
                     return allocator.make!Instance;
             }();
             *instance = args[0];
-            return instance;
-        } else static if(__traits(compiles, emplace(new Unqual!Instance, args))) {
-            auto instance = new Unqual!Instance;
-            emplace(instance, args);
             return instance;
         } else {
             auto instance = new Unqual!Instance;

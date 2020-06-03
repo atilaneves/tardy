@@ -10,7 +10,7 @@ matrix:
     - d: dmd-nightly
 
 script:
-  - dub test --build=unittest-cov --compiler=${DC}
+  - dub test --build=unittest-cov --compiler=${DC} -c asan
   - dub build --compiler=${DC}
 
 after_success:

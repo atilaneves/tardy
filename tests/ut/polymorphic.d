@@ -148,8 +148,24 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 }
 
 
-@("array.pure")
-@safe /* pure */ unittest {
+@("scalar.value.transform.string")
+@safe unittest {
+    const string_ = Transformer.create!("modules.ufcs.value.transform")("foobar");
+    xform(string_, 2).should == 8;
+    xform(string_, 3).should == 9;
+}
+
+
+@("scalar.ref.transform.string")
+@safe unittest {
+    const string_ = Transformer.create!("modules.ufcs.ref_.transform")("foobar");
+    xform(string_, 2).should == 8;
+    xform(string_, 3).should == 9;
+}
+
+
+@("array.int")
+@safe /* pure FIXME */ unittest {
     static import modules.ufcs.pointer.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
@@ -165,6 +181,29 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     printable.stringify.should == "42";
 }
 
+
+
+@("array.string")
+@safe unittest {
+    static import modules.ufcs.pointer.stringify;
+    import modules.types: Negative, Point, String;
+    import std.algorithm.iteration: map;
+    import std.array: array;
+
+    static interface IPrintable {
+        string stringify() @safe const;
+    }
+
+    alias Printable = Polymorphic!IPrintable;
+
+    auto printables = [
+        Printable.create!(modules.ufcs.pointer.stringify)("foobar"),
+    ];
+
+    printables.map!(a => a.stringify).array.should == [
+        "foobar",
+    ];
+}
 
 
 @("array.safe")

@@ -79,8 +79,9 @@ import tardy;
         string stringify() @safe const { import std.conv: text; return text("Foo(", i, ")"); }
     }
 
-    auto p = Printable(Foo(42));
-    p.stringify.should == "Foo(0)";  // T.init
+    static assert(!__traits(compiles, Printable(Foo(42))));
+    auto p = Printable.create!Foo(42);
+    p.stringify.should == "Foo(42)";
     p.inc;
-    p.stringify.should == "Foo(1)";
+    p.stringify.should == "Foo(43)";
 }

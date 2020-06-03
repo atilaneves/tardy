@@ -22,15 +22,15 @@ private int xform(in Transformer t, int i) @safe @nogc pure {
 
 private struct MultiplierStruct {
     int i;
-    int transform(int j) @safe @nogc pure const { return i * j; }
+    int transform(int j) @safe @nogc pure nothrow const { return i * j; }
 }
 
 private class MultiplierClass {
     int i;
-    this(int i) @safe pure { this.i = i; }
-    this(const MultiplierClass other) @safe pure { this.i = other.i; }
-    int transform(int j) @safe @nogc pure const { return i * j; }
-    override string toString() @safe pure const {
+    this(int i) @safe @nogc pure nothrow inout { this.i = i; }
+    this(const MultiplierClass other) @safe @nogc pure nothrow inout { this.i = other.i; }
+    int transform(int j) @safe @nogc pure nothrow const { return i * j; }
+    override string toString() @safe pure nothrow const {
         import std.conv: text;
         return text(`MultiplierClass(`, i, `)`);
     }

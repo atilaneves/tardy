@@ -148,8 +148,24 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 }
 
 
-@("array.pure")
-@safe /* pure */ unittest {
+@("scalar.value.transform.string")
+@safe unittest {
+    const string_ = Transformer.create!("modules.ufcs.value.transform")("foobar");
+    xform(string_, 2).should == 8;
+    xform(string_, 3).should == 9;
+}
+
+
+@("scalar.ref.transform.string")
+@safe unittest {
+    const string_ = Transformer.create!("modules.ufcs.ref_.transform")("foobar");
+    xform(string_, 2).should == 8;
+    xform(string_, 3).should == 9;
+}
+
+
+@("array.int")
+@safe /* pure FIXME */ unittest {
     static import modules.ufcs.pointer.stringify;
     import modules.types: Negative, Point, String;
     import std.algorithm.iteration: map;
@@ -167,7 +183,7 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 
 
 
-@("array.foo")
+@("array.string")
 @safe unittest {
     static import modules.ufcs.pointer.stringify;
     import modules.types: Negative, Point, String;

@@ -79,12 +79,3 @@ private class ThriceClass {
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
 }
-
-
-// @("mallocator.class.stateless.copy")
-// @safe pure unittest {
-//     // See #5
-//     const multiplier = Transformer(new ThriceClass(3));
-//     xform(multiplier, 2).should == 6;
-//     xform(multiplier, 3).should == 9;
-// }

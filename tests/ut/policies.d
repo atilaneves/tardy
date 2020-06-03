@@ -36,6 +36,10 @@ private class MultiplierClass {
     }
 }
 
+private class ThriceClass {
+    int transform(int i) @safe @nogc pure const { return i * 3; }
+}
+
 
 @("mallocator.struct.create")
 @safe pure unittest {
@@ -53,9 +57,34 @@ private class MultiplierClass {
 }
 
 
-@("mallocator.class.copy")
+@("mallocator.class.stateful.create")
+@safe pure unittest {
+    const multiplier = Transformer.create!MultiplierClass(3);
+    xform(multiplier, 2).should == 6;
+    xform(multiplier, 3).should == 9;
+}
+
+
+@("mallocator.class.stateful.copy")
 @safe pure unittest {
     const multiplier = Transformer(new MultiplierClass(3));
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
 }
+
+
+@("mallocator.class.stateless.create")
+@safe pure unittest {
+    const multiplier = Transformer.create!ThriceClass(3);
+    xform(multiplier, 2).should == 6;
+    xform(multiplier, 3).should == 9;
+}
+
+
+// @("mallocator.class.stateless.copy")
+// @safe pure unittest {
+//     // See #5
+//     const multiplier = Transformer(new ThriceClass(3));
+//     xform(multiplier, 2).should == 6;
+//     xform(multiplier, 3).should == 9;
+// }

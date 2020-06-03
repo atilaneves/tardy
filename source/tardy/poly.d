@@ -372,8 +372,8 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
             auto instance = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
             return () @trusted { return cast(void*) instance; }();
         } else {
-            auto newInstance = new Unqual!Instance;
-            return () @trusted { return cast(void*) newInstance; }();
+            auto instance = () @trusted { return allocator.make!Instance; }();
+            return () @trusted { return cast(void*) instance; }();
         }
 
     } else {

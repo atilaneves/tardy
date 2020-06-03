@@ -342,10 +342,9 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
         }
 
     } else {
-        static if(__traits(compiles, new Unqual!Instance(args))) {
-            auto ptr = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
-            return ptr;
-        } else static if(__traits(compiles, emplace(new Unqual!Instance, args))) {
+        static if(__traits(compiles, new Unqual!Instance(args)))
+            return () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
+        else static if(__traits(compiles, emplace(new Unqual!Instance, args))) {
             auto instance = allocator.make!Instance;
             emplace(instance, args);
             return instance;

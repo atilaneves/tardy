@@ -17,18 +17,21 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
 
     enum instanceAllocatorHasState = stateSize!InstanceAllocator != 0;
 
-    static assert(!instanceAllocatorHasState,
-                  "Allocators with state are not yet supported");
-
     private alias VTable = VirtualTable!(Interface, InstanceAllocator);
 
     private immutable(VTable)* _vtable;
     private void* _instance;
-    private alias _allocator = InstanceAllocator.instance;
+
+    static if(instanceAllocatorHasState)
+        private InstanceAllocator _allocator;
+    else
+        private alias _allocator = InstanceAllocator.instance;
 
     this(this This, Instance)(auto ref Instance instance) {
-        this(constructInstance!Instance(_allocator, instance),
-             vtable!(Interface, Instance, InstanceAllocator));
+        this(
+            constructInstance!Instance(_allocator, instance),
+            vtable!(Interface, Instance, InstanceAllocator),
+        );
     }
 
     this(ref scope const(Polymorphic) other) {
@@ -157,8 +160,10 @@ struct VirtualTable(Interface, InstanceAllocator) if(is(Interface == interface))
 
     // The destructor and copy constructor have to be in the virtual table
     // since the only point we know the static type is when constructing.
-    alias CopyConstructorBase = void* function(scope ref const Polymorphic!(Interface, InstanceAllocator) other,
-                                               ref typeof(InstanceAllocator.instance) allocator);
+    alias CopyConstructorBase = void* function(
+        scope ref const Polymorphic!(Interface, InstanceAllocator) other,
+        ref AllocatorType!InstanceAllocator allocator,
+    );
     alias DestructorBase = void function(ref Polymorphic!(Interface, InstanceAllocator) self);
 
     alias CopyConstructor = std.traits.SetFunctionAttributes!(
@@ -203,14 +208,27 @@ private string argName(size_t i) { import std.conv: text; return `arg` ~ i.text;
    This function assigns every slot in VirtualTable!Interface with
    a function pointer that delegates to the Instance type.
  */
-auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
+template vtable(Interface, Instance, InstanceAllocator, Modules...) {
+
+    private static immutable VirtualTable!(Interface, InstanceAllocator) _tab;
+
+    shared static this() {
+        _tab = vtableImpl!(Interface, Instance, InstanceAllocator, Modules);
+    }
+
+    auto vtable() {
+        return &_tab;
+    }
+}
+
+private auto vtableImpl(Interface, Instance, InstanceAllocator, Modules...)() {
 
     import std.conv: text;
     import std.string: join;
     import std.traits: Parameters, fullyQualifiedName, PointerTarget, CopyTypeQualifiers;
     import std.format: format;
 
-    auto ret = new VirtualTable!(Interface, InstanceAllocator);
+    VirtualTable!(Interface, InstanceAllocator) ret;
 
     // func -> arg0, arg1, ...
     static string argsList(string name, size_t i)() {
@@ -353,7 +371,9 @@ auto vtable(Interface, Instance, InstanceAllocator, Modules...)() {
 }
 
 
-private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceAllocator allocator, auto ref A args) @safe {
+private void* constructInstance(Instance, InstanceAllocator, A...)
+                               (ref InstanceAllocator allocator, auto ref A args)
+{
     import std.traits: Unqual, isCopyable, isArray;
     import std.range.primitives: ElementEncodingType;
     import std.experimental.allocator: make, makeArray;
@@ -393,4 +413,12 @@ private void* constructInstance(Instance, InstanceAllocator, A...)(ref InstanceA
                           "Cannot build `" ~ fullyQualifiedName!Instance ~ " from " ~ A.stringof);
         }
     }
+}
+
+
+private template AllocatorType(T) {
+    static if(__traits(hasMember, T, "instance"))
+        alias AllocatorType = typeof(T.instance);
+    else
+        alias AllocatorType = T;
 }

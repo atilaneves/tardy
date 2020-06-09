@@ -39,5 +39,5 @@ configuration "asan" {
 
     dependency "unit-threaded" version="*"
 
-    versions "unitUnthreaded"
+    versions "unitUnthreaded" "nodip1008"
 }

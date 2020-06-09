@@ -14,9 +14,10 @@ private interface ITransformer {
     int transform(int) @safe @nogc pure const;
 }
 
-private alias Transformer = Polymorphic!(ITransformer, Mallocator);
 
-private int xform(in Transformer t, int i) @safe @nogc pure {
+private alias TransformerMalloc = Polymorphic!(ITransformer, Mallocator);
+
+private int xform(in TransformerMalloc t, int i) @safe @nogc pure {
     return t.transform(i);
 }
 
@@ -28,7 +29,7 @@ private struct Multiplier {
 
 @("mallocator.create")
 @safe pure unittest {
-    const multiplier = Transformer.create!Multiplier(3);
+    const multiplier = TransformerMalloc.create!Multiplier(3);
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
 }
@@ -36,7 +37,7 @@ private struct Multiplier {
 
 @("mallocator.copy")
 @safe pure unittest {
-    const multiplier = Transformer(Multiplier(3));
+    const multiplier = TransformerMalloc(Multiplier(3));
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
 }
@@ -44,6 +45,14 @@ private struct Multiplier {
 
 @("mallocator.nogc")
 @safe @nogc pure unittest {
-    const multiplier = Transformer(Multiplier(3));
+    const multiplier = TransformerMalloc(Multiplier(3));
     xform(multiplier, 2);
+}
+
+
+@("sbo.copy")
+@safe pure unittest {
+    const multiplier = Polymorphic!(ITransformer, SBOAllocator!16)(Multiplier(3));
+    multiplier.transform(2).should == 6;
+    multiplier.transform(3).should == 9;
 }

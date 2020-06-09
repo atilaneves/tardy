@@ -27,6 +27,20 @@ import ut;
 @safe pure unittest {
     InSitu!16 allocator;
     void[] buf;
-    allocator.deallocate(buf).shouldThrow;
+
+    version(nodip1008) {
+        import core.exception: AssertError;
+        alias Class = AssertError;
+    } else
+          alias Class = Exception;
+
+    allocator.deallocate(buf).shouldThrow!Class;
     allocator.deallocate(allocator.allocate(5));
+}
+
+
+@("sbo.sizeof")
+@safe pure unittest {
+    static assert(SBOAllocator!16.sizeof == 16);
+    static assert(SBOAllocator!32.sizeof == 32);
 }

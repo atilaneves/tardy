@@ -20,8 +20,14 @@ struct InSitu(size_t N) {
     import std.experimental.allocator: platformAlignment;
 
     enum alignment = platformAlignment;
+    static assert(N >= alignment);
 
-    private ubyte[N] _buffer;
+    union {
+        private ubyte[N] _buffer;
+        private double _forAlignmentOnly_;
+    }
+
+    @disable this(this);
 
     void[] allocate(size_t n) return scope {
         return _buffer[0 .. n];

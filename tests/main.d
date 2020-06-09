@@ -8,4 +8,5 @@ mixin runTestsMain!(
     "ut.memory.structs",
     "ut.memory.values",
     "ut.memory.classes",
+    "ut.memory.allocators",
 );

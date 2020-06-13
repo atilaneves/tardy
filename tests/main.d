@@ -10,3 +10,10 @@ mixin runTestsMain!(
     "ut.memory.classes",
     "ut.memory.allocators",
 );
+
+
+shared static this() @safe nothrow {
+    import std.experimental.allocator: theAllocator, allocatorObject;
+    import std.experimental.allocator.mallocator: Mallocator;
+    () @trusted { theAllocator = allocatorObject(Mallocator.instance); }();
+}

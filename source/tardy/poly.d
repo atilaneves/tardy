@@ -13,7 +13,8 @@ alias DefaultAllocator = from!"tardy.allocators".GC;
 struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
     if(is(Interface == interface))
 {
-    import std.experimental.allocator: stateSize;
+    import std.traits: Unqual;
+    import std.experimental.allocator: stateSize, theAllocator;
 
     enum instanceAllocatorHasState = stateSize!InstanceAllocator != 0;
 
@@ -22,9 +23,12 @@ struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
     private immutable(VTable)* _vtable;
     private void* _instance;
 
-    static if(instanceAllocatorHasState)
-        private InstanceAllocator _allocator;
-    else
+    static if(instanceAllocatorHasState) {
+        static if(is(Unqual!InstanceAllocator == typeof(theAllocator())))
+            private alias _allocator = theAllocator;
+        else
+            private InstanceAllocator _allocator;
+    } else
         private alias _allocator = InstanceAllocator.instance;
 
     this(this This, Instance)(auto ref Instance instance) {
@@ -390,6 +394,10 @@ private void* constructInstance(Instance, InstanceAllocator, A...)
     import std.traits: Unqual, isCopyable, isArray, isSafe;
     import std.range.primitives: ElementEncodingType;
     import std.experimental.allocator: make, makeArray;
+
+    static if(is(typeof(allocator.isNull)))
+        assert(!allocator.isNull,
+               "Cannot construct instance with null allocator of type " ~ InstanceAllocator.stringof);
 
     static if(is(Instance == class)) {
         static if(__traits(compiles, () @trusted { allocator.make!Instance(args); } )) {

@@ -15,6 +15,16 @@ private interface ITransformer {
 }
 
 
+private interface ITransformerGC {
+    import std.traits: FA = FunctionAttribute;
+
+    enum CopyConstructorAttrs = FA.system;
+    enum DestructorAttrs = FA.system;
+
+    int transform(int) @system pure const;
+}
+
+
 private alias TransformerMalloc = Polymorphic!(ITransformer, Mallocator);
 
 // @system because the copy constructor can't be @safe
@@ -62,6 +72,16 @@ private struct Multiplier {
 @("insitu.copy")
 @system pure unittest {
     const multiplier = Polymorphic!(ITransformer, InSitu!16)(Multiplier(3));
+    multiplier.transform(2).should == 6;
+    multiplier.transform(3).should == 9;
+}
+
+
+@("theAllocator.copy")
+@system unittest {
+    import std.experimental.allocator: theAllocator;
+
+    const multiplier = Polymorphic!(ITransformerGC, typeof(theAllocator))(Multiplier(3));
     multiplier.transform(2).should == 6;
     multiplier.transform(3).should == 9;
 }

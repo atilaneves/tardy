@@ -9,14 +9,15 @@ private interface ITransformer {
     import std.traits: FA = FunctionAttribute;
 
     enum CopyConstructorAttrs = FA.safe | FA.pure_;
-    enum DestructorAttrs = FA.safe | FA.pure_ | FA.nogc;
+    enum DestructorAttrs = FA.pure_ | FA.nogc;
 
     int transform(int) @safe @nogc pure const;
 }
 
 private alias Transformer = Polymorphic!(ITransformer, Mallocator);
 
-private int xform(in Transformer t, int i) @safe @nogc pure {
+// @system because the copy constructor can't be safe
+private int xform(in Transformer t, int i) @system @nogc pure {
     return t.transform(i);
 }
 
@@ -37,7 +38,7 @@ private class Thrice {
 
 
 @("mallocator.stateful.create")
-@safe pure unittest {
+@system pure unittest {
     const multiplier = Transformer.create!Multiplier(3);
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
@@ -45,7 +46,7 @@ private class Thrice {
 
 
 @("mallocator.stateful.copy")
-@safe pure unittest {
+@system pure unittest {
     const multiplier = Transformer(new Multiplier(3));
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;
@@ -53,7 +54,7 @@ private class Thrice {
 
 
 @("mallocator.stateless.create")
-@safe pure unittest {
+@system pure unittest {
     const multiplier = Transformer.create!Thrice(3);
     xform(multiplier, 2).should == 6;
     xform(multiplier, 3).should == 9;

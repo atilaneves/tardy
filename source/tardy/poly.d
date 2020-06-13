@@ -4,7 +4,7 @@ module tardy.poly;
 import tardy.from;
 
 
-alias DefaultAllocator = from!"std.experimental.allocator.gc_allocator".GCAllocator;
+alias DefaultAllocator = from!"tardy.allocators".GC;
 
 /**
    A wrapper that acts like a subclass of Interface, dispatching
@@ -364,12 +364,25 @@ private auto vtableImpl(Interface, Instance, InstanceAllocator, Modules...)() {
 
         auto instance = () @trusted { return cast(Instance*) self._instance; }();
 
-        () @trusted /* FIXME */ { self._allocator.dispose(instance); }();
+        void disp() {
+            self._allocator.dispose(instance);
+        }
+
+        static if(canSafelyFree!(typeof(self._allocator)))
+            () @trusted { disp; }();
+        else
+            disp;
     };
 
     return ret;
 }
 
+
+template canSafelyFree(InstanceAllocator) {
+    import tardy.allocators: GC;
+    import std.traits: Unqual;
+    enum canSafelyFree = is(Unqual!InstanceAllocator == Unqual!GC);
+}
 
 private void* constructInstance(Instance, InstanceAllocator, A...)
                                (ref InstanceAllocator allocator, auto ref A args)

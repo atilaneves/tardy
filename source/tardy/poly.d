@@ -8,7 +8,7 @@ alias DefaultAllocator = from!"tardy.allocators".GC;
 
 /**
    A wrapper that acts like a subclass of Interface, dispatching
-   at runtime to different instance instances.
+   at runtime to different instances of different types.
  */
 struct Polymorphic(Interface, InstanceAllocator = DefaultAllocator)
     if(is(Interface == interface))

@@ -56,3 +56,11 @@ private struct Multiplier {
     multiplier.transform(2).should == 6;
     multiplier.transform(3).should == 9;
 }
+
+
+@("insitu.copy")
+@safe pure unittest {
+    const multiplier = Polymorphic!(ITransformer, InSitu!16)(Multiplier(3));
+    multiplier.transform(2).should == 6;
+    multiplier.transform(3).should == 9;
+}

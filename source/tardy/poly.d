@@ -4,7 +4,7 @@ module tardy.poly;
 import tardy.from;
 
 
-alias DefaultAllocator = from!"std.experimental.allocator.gc_allocator".GCAllocator;
+alias DefaultAllocator = from!"tardy.allocators".GC;
 
 /**
    A wrapper that acts like a subclass of Interface, dispatching
@@ -364,27 +364,58 @@ private auto vtableImpl(Interface, Instance, InstanceAllocator, Modules...)() {
 
         auto instance = () @trusted { return cast(Instance*) self._instance; }();
 
-        () @trusted /* FIXME */ { self._allocator.dispose(instance); }();
+        void disp() {
+            self._allocator.dispose(instance);
+        }
+
+        static if(canSafelyFree!(typeof(self._allocator)))
+            () @trusted { disp; }();
+        else
+            disp;
     };
 
     return ret;
 }
 
 
+template canSafelyFree(InstanceAllocator) {
+    import tardy.allocators: GC;
+    import std.traits: Unqual;
+    enum canSafelyFree = is(Unqual!InstanceAllocator == Unqual!GC);
+}
+
 private void* constructInstance(Instance, InstanceAllocator, A...)
                                (ref InstanceAllocator allocator, auto ref A args)
 {
-    import std.traits: Unqual, isCopyable, isArray;
+    import std.traits: Unqual, isCopyable, isArray, isSafe;
     import std.range.primitives: ElementEncodingType;
     import std.experimental.allocator: make, makeArray;
 
     static if(is(Instance == class)) {
-
         static if(__traits(compiles, () @trusted { allocator.make!Instance(args); } )) {
-            auto instance = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
+
+            auto make_() {
+                return allocator.make!Instance(args);
+            }
+
+            static if(isSafe!({ new Instance(args); }) && isSafe!({ allocator.allocate(1); }))
+                auto instance = () @trusted { return make_; }();
+            else
+                auto instance = make_;
             return () @trusted { return cast(void*) instance; }();
         } else {
-            auto instance = () @trusted /* FIXME */ { return allocator.make!Instance; }();
+
+            auto make_() {
+                return allocator.make!Instance;
+            }
+
+            static if(__traits(compiles, () @trusted { allocator.make!Instance; } )) {
+                static if(isSafe!({ new Instance; }) && isSafe!({ allocator.allocate(1); }))
+                    auto instance = () @trusted { return make_; }();
+                else
+                    auto instance = make_;
+            }
+
             return () @trusted { return cast(void*) instance; }();
         }
 
@@ -395,7 +426,7 @@ private void* constructInstance(Instance, InstanceAllocator, A...)
             || (!isArray!Instance && is(Unqual!Instance == Unqual!(A[0])));
 
         static if(__traits(compiles, new Unqual!Instance(args))) {
-            return () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
+            return allocator.make!Instance(args);
         } else static if(__traits(compiles, allocator.make!Instance(args))) {
             return allocator.make!Instance(args);
         } else static if(isCopyable!Instance && args.length == 1 && canCopy) {

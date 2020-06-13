@@ -58,3 +58,24 @@ struct InSitu(size_t N) {
             : Ternary.no;
     }
 }
+
+
+struct GC {
+
+    import std.experimental.allocator.gc_allocator: GCAllocator;
+
+    enum alignment = GCAllocator.alignment;
+
+    static GC instance;
+
+    void[] allocate(size_t n) @safe return scope pure {
+        return GCAllocator.instance.allocate(n);
+    }
+
+    bool deallocate(scope void[]) @safe scope pure const {
+        // By never deallocating, all operations using this allocator can
+        // be @trusted
+        return true;
+    }
+
+}

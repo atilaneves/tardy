@@ -387,17 +387,35 @@ template canSafelyFree(InstanceAllocator) {
 private void* constructInstance(Instance, InstanceAllocator, A...)
                                (ref InstanceAllocator allocator, auto ref A args)
 {
-    import std.traits: Unqual, isCopyable, isArray;
+    import std.traits: Unqual, isCopyable, isArray, isSafe;
     import std.range.primitives: ElementEncodingType;
     import std.experimental.allocator: make, makeArray;
 
     static if(is(Instance == class)) {
-
         static if(__traits(compiles, () @trusted { allocator.make!Instance(args); } )) {
-            auto instance = () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
+
+            auto make_() {
+                return allocator.make!Instance(args);
+            }
+
+            static if(isSafe!({ new Instance(args); }) && isSafe!({ allocator.allocate(1); }))
+                auto instance = () @trusted { return make_; }();
+            else
+                auto instance = make_;
             return () @trusted { return cast(void*) instance; }();
         } else {
-            auto instance = () @trusted /* FIXME */ { return allocator.make!Instance; }();
+
+            auto make_() {
+                return allocator.make!Instance;
+            }
+
+            static if(__traits(compiles, () @trusted { allocator.make!Instance; } )) {
+                static if(isSafe!({ new Instance; }) && isSafe!({ allocator.allocate(1); }))
+                    auto instance = () @trusted { return make_; }();
+                else
+                    auto instance = make_;
+            }
+
             return () @trusted { return cast(void*) instance; }();
         }
 
@@ -408,7 +426,7 @@ private void* constructInstance(Instance, InstanceAllocator, A...)
             || (!isArray!Instance && is(Unqual!Instance == Unqual!(A[0])));
 
         static if(__traits(compiles, new Unqual!Instance(args))) {
-            return () @trusted /* FIXME */ { return allocator.make!Instance(args); }();
+            return allocator.make!Instance(args);
         } else static if(__traits(compiles, allocator.make!Instance(args))) {
             return allocator.make!Instance(args);
         } else static if(isCopyable!Instance && args.length == 1 && canCopy) {

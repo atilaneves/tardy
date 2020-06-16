@@ -40,7 +40,7 @@ unittest {
 
 Traditional inheritance-based runtime polymorphism has a few drawbacks:
 
-  * Classes must inherit the memory layout or their parent classes.
+  * Classes must inherit the memory layout of their parent classes.
   * Bakes in reference semantics.
     * Must be careful with "copies" (actually references)
     * All instances are nullable

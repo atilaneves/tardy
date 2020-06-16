@@ -5,7 +5,7 @@ copyright "Copyright © 2020, Atila Neves"
 license "boost"
 
 targetPath "bin"
-
+toolchainRequirements dmd=">=2.091.1" gdc="no" ldc=">=1.21.0"
 
 configuration "default" {
 

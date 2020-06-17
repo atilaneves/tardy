@@ -99,6 +99,21 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
 }
 
 
+@("template")
+@safe unittest {
+    import modules.ufcs.template_: Struct;
+
+    xform(Transformer.create!"modules.ufcs.template_"(Struct(2)), 3).should == 5;
+    xform(Transformer.create!"modules.ufcs.template_"(Struct(2)), 4).should == 6;
+
+    xform(Transformer.create!"modules.ufcs.template_"(2), 3).should == 6;
+    xform(Transformer.create!"modules.ufcs.template_"(2), 4).should == 8;
+
+    xform(Transformer.create!"modules.ufcs.template_"(4.0), 3).should == 1;
+    xform(Transformer.create!"modules.ufcs.template_"(5.0), 3).should == 2;
+}
+
+
 @("scalar.pointer.transform.int.standard")
 @safe unittest {
     auto three = Transformer.create!"modules.ufcs.pointer.transform"(3);

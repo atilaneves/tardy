@@ -75,10 +75,11 @@ auto t = Polymorphic!MyInterface.create!MyType(arg0, arg1, arg2, ...);
 One can also pass modules to `create` where `Polymorphic` should look for UFCS candidates:
 
 ```d
-// Using the `Transfomer` example above, and assuming there's a UFCS function in "mymod",
+// Using the `Transfomer` example above, and assuming there's a
+// UFCS function in one of "mymod0" or "mymod1",
 // this constructs an `int` "instance"
 
-auto t = Transformer.create!("mymod")(42);
+auto t = Transformer.create!("mymod0", "mymod1")(42);
 ```
 
 ## Specifying function attributes for the copy constructor and destructor

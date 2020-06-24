@@ -10,7 +10,21 @@ private interface ITransformer {
 
 private alias Transformer = Polymorphic!ITransformer;
 
+private interface INonThrower {
+    import std.traits: FA = FunctionAttribute;
+    enum CopyConstructorAttrs = FA.safe | FA.pure_ | FA.nothrow_;
+    enum DestructorAttrs = FA.safe | FA.pure_ |  FA.nothrow_;
+    
+    int transform(int) @safe pure nothrow const;
+}
+
+private alias NonThrower = Polymorphic!INonThrower;
+
 private int xform(in Transformer t, int i) @safe /* pure */ {
+    return t.transform(i);
+}
+
+private int xform(in NonThrower t, int i) @safe pure nothrow {
     return t.transform(i);
 }
 
@@ -40,6 +54,19 @@ private int xform(in Transformer t, int i) @safe /* pure */ {
     xform(thrice, 1).should == 3;
     xform(thrice, 2).should == 6;
     xform(thrice, 3).should == 9;
+}
+
+@("struct.stateless.Nothrow")
+@safe unittest {
+    const testValues = () nothrow {
+        static struct Square {
+            int transform(int i) @safe pure nothrow const { return i * i; }
+        }
+        const NonThrower square = Square();
+        return [xform(square, 1), xform(square, 2), xform(square, 3)];
+    }();
+
+    testValues.should == [1, 4, 9];
 }
 
 

@@ -68,11 +68,11 @@ struct GC {
 
     static GC instance;
 
-    void[] allocate(size_t n) @safe return scope pure {
+    void[] allocate(size_t n) @safe return scope pure nothrow {
         return GCAllocator.instance.allocate(n);
     }
 
-    bool deallocate(scope void[]) @safe scope pure const {
+    bool deallocate(scope void[]) @safe scope pure nothrow @nogc const {
         // By never deallocating, all operations using this allocator can
         // be @trusted
         return true;

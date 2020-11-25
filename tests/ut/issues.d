@@ -1,3 +1,6 @@
+module ut.issues;
+
+
 import ut;
 
 
@@ -16,15 +19,14 @@ import ut;
     static class PlusNumber {
         private int number;
 
-        this(int number) {
+        this(int number) @safe pure {
             this.number = number;
         }
 
-        int transform(int i) pure const {
+        int transform(int i) @safe pure const {
             return i + number;
         }
     }
 
-    static assert(!__traits(compiles, Transformer(new PlusNumber(42))));
-    //auto plus = Transformer(new PlusNumber(42));
+    auto plus = Transformer(new PlusNumber(42));
 }

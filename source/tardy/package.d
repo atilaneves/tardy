@@ -4,7 +4,7 @@ public import tardy.poly;
 public import tardy.allocators;
 
 
-version(unittest):
+version(TardyTest):
 
 import tardy;
 

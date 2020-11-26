@@ -21,7 +21,7 @@ configuration "unittest" {
 
     dependency "unit-threaded" version="*"
 
-    versions "unitUnthreaded"
+    versions "unitUnthreaded" "TardyTest"
 }
 
 
@@ -39,5 +39,5 @@ configuration "asan" {
 
     dependency "unit-threaded" version="*"
 
-    versions "unitUnthreaded" "nodip1008"
+    versions "unitUnthreaded" "nodip1008" "TardyTest"
 }

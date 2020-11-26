@@ -329,6 +329,8 @@ private auto vtableImpl(Interface, Instance, InstanceAllocator, Modules...)() {
                 } else static if(is(typeof(&implByRef!()))) {
                     mixin(byRefRecipe);
                 } else {
+                    // mixin(byPtrRecipe);
+                    // mixin(byRefRecipe);
                     static assert(false, "Neither of these compiled:" ~ byRefRecipe ~ byPtrRecipe);
                 }
             }}
@@ -400,7 +402,13 @@ private void* constructInstance(Instance, InstanceAllocator, A...)
                "Cannot construct instance with null allocator of type " ~ InstanceAllocator.stringof);
 
     static if(is(Instance == class)) {
-        static if(__traits(compiles, () @trusted { allocator.make!Instance(args); } )) {
+        import tardy.allocators: GC;
+
+        static if(A.length == 1 && is(A[0]: Instance) && is(InstanceAllocator == GC)) {
+
+            return () @trusted { return cast(void*) args[0]; }();
+
+        } else static if(__traits(compiles, () @trusted { allocator.make!Instance(args); } )) {
 
             auto make_() {
                 return allocator.make!Instance(args);

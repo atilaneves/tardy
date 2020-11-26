@@ -2,6 +2,7 @@ import unit_threaded;
 
 mixin runTestsMain!(
     "tardy",
+    "ut.issues",
     "ut.polymorphic",
     "ut.value",
     "ut.refraction.vtable",

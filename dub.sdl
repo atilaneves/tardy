@@ -17,7 +17,7 @@ configuration "unittest" {
     mainSourceFile "tests/main.d"
     sourcePaths "tests"
     importPaths "tests"
-    dflags "-checkaction=context" "-preview=dip25" "-preview=dip1000" "-preview=dip1008"
+    dflags "-checkaction=context" "-preview=dip25" "-preview=dip1000" "-preview=dip1008" "-preview=in"
 
     dependency "unit-threaded" version="*"
 

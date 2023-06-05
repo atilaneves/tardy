@@ -414,7 +414,7 @@ private void* constructInstance(Instance, InstanceAllocator, A...)
                 return allocator.make!Instance(args);
             }
 
-            static if(isSafe!({ new Instance(args); }) && isSafe!({ allocator.allocate(1); }))
+            static if(isSafe!({ new Instance(args); }) && isSafe!({ cast(void) allocator.allocate(1); }))
                 auto instance = () @trusted { return make_; }();
             else
                 auto instance = make_;
@@ -426,7 +426,7 @@ private void* constructInstance(Instance, InstanceAllocator, A...)
             }
 
             static if(__traits(compiles, () @trusted { allocator.make!Instance; } )) {
-                static if(isSafe!({ new Instance; }) && isSafe!({ allocator.allocate(1); }))
+                static if(isSafe!({ new Instance; }) && isSafe!({ cast(void) allocator.allocate(1); }))
                     auto instance = () @trusted { return make_; }();
                 else
                     auto instance = make_;

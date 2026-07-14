@@ -20,11 +20,11 @@ private interface INonThrower {
 
 private alias NonThrower = Polymorphic!INonThrower;
 
-private int xform(in Transformer t, int i) @safe /* pure */ {
+private int xform(const Transformer t, int i) @safe /* pure */ {
     return t.transform(i);
 }
 
-private int xform(in NonThrower t, int i) @safe pure nothrow {
+private int xform(const NonThrower t, int i) @safe pure nothrow {
     return t.transform(i);
 }
 

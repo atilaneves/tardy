@@ -10,7 +10,7 @@ jobs:
         os:
           - ubuntu-24.04
           - windows-2022
-          - macos-15-intel
+          - macos-14-large
         dc:
           - dmd-2.112.0
           - ldc-1.42.0

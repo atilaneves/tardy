@@ -5,30 +5,38 @@ jobs:
   test:
     name: Dub Test
     strategy:
+      fail-fast: false
       matrix:
         os:
-          - ubuntu-22.04
-          - windows-2019
-          - macos-11
+          - ubuntu-24.04
+          - windows-2022
+          - macos-15
         dc:
-          - dmd-2.103.1
-          - dmd-2.094.2
-          - ldc-1.32.2
-          - ldc-1.24.0
+          - dmd-2.112.0
+          - ldc-1.42.0
+        exclude:
+          - os: macos-15
+            dc: dmd-2.112.0
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
       - name: Install D compiler
-        uses: dlang-community/setup-dlang@v1.3.0
+        uses: dlang-community/setup-dlang@v1.4.0
         with:
           compiler: ${{ matrix.dc }}
 
       - name: Run tests
+        if: matrix.os != 'ubuntu-24.04'
+        run: dub test -q
+
+      - name: Run coverage tests
+        if: matrix.os == 'ubuntu-24.04'
         run: dub test -q --build=unittest-cov #-c asan
 
       - name: Build binary
         run: dub build -q
 
-      - uses: codecov/codecov-action@v3.1.4
+      - if: matrix.os == 'ubuntu-24.04'
+        uses: codecov/codecov-action@v7

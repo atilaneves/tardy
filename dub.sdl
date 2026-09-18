@@ -14,6 +14,7 @@ configuration "default" {
 
 configuration "unittest" {
     targetType "executable"
+    targetName "ut"
     mainSourceFile "tests/main.d"
     sourcePaths "tests"
     importPaths "tests"
